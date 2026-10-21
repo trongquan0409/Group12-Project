@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<BorderPane xmlns:fx="http://javafx.com/fxml/1" fx:controller="vn.edu.auction.client.AuctionListController">
+  <top>
+    <VBox spacing="8" styleClass="header">
+      <padding><Insets top="16" right="18" bottom="12" left="18"/></padding>
+      <Label text="HỆ THỐNG ĐẤU GIÁ TRỰC TUYẾN" styleClass="title"/>
+      <Label text="Java 26 · JavaFX · Spring Boot · MySQL"/>
+    </VBox>
+  </top>
+  <center>
+    <VBox spacing="10">
+      <padding><Insets top="14" right="18" bottom="14" left="18"/></padding>
+      <HBox spacing="8">
+        <Button text="Làm mới danh sách" onAction="#refresh"/>
+        <Label fx:id="messageLabel" text="Sẵn sàng" wrapText="true"/>
+      </HBox>
+      <TableView fx:id="auctionTable" VBox.vgrow="ALWAYS">
+        <columns>
+          <TableColumn fx:id="idColumn" text="Auction ID" prefWidth="110"/>
+          <TableColumn fx:id="priceColumn" text="Giá hiện tại" prefWidth="180"/>
+          <TableColumn fx:id="statusColumn" text="Trạng thái" prefWidth="150"/>
+        </columns>
+      </TableView>
+      <TitledPane text="Đặt giá (bản khung)" expanded="true">
+        <content>
+          <GridPane hgap="10" vgap="8">
+            <padding><Insets top="12" right="12" bottom="12" left="12"/></padding>
+            <Label text="Auction ID" GridPane.rowIndex="0" GridPane.columnIndex="0"/>
+            <TextField fx:id="auctionIdField" promptText="Ví dụ: 1" GridPane.rowIndex="0" GridPane.columnIndex="1"/>
+            <Label text="Bidder ID" GridPane.rowIndex="1" GridPane.columnIndex="0"/>
+            <TextField fx:id="bidderIdField" promptText="ID tài khoản Bidder" GridPane.rowIndex="1" GridPane.columnIndex="1"/>
+            <Label text="Giá muốn đặt" GridPane.rowIndex="2" GridPane.columnIndex="0"/>
+            <TextField fx:id="amountField" promptText="Ví dụ: 150000.00" GridPane.rowIndex="2" GridPane.columnIndex="1"/>
+            <Button text="Đặt giá" onAction="#placeBid" GridPane.rowIndex="3" GridPane.columnIndex="1"/>
+          </GridPane>
+        </content>
+      </TitledPane>
+    </VBox>
+  </center>
+</BorderPane>
