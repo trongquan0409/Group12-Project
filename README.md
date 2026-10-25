@@ -1,70 +1,55 @@
-# Online Auction — Java 26
+# Online Auction System — LTNC 2026 (Starter)
 
-Khung dự án bài tập lớn theo đề: Client JavaFX + FXML, Server Spring Boot REST + WebSocket, MySQL.
+Bộ khung bám theo `Hướng dẫn BTL LTNC-2026.pdf`: Java 26, JavaFX/FXML, Java Socket, Serialization/File I/O, Observer, OOP, Singleton, Factory Method, MVC, JUnit, Maven, Checkstyle và GitHub Actions.
 
-## Công nghệ
+> Đây là starter scaffold để nhóm phát triển tiếp, không phải hệ thống hoàn thiện. Không có Spring Boot, WebSocket hoặc MySQL trong phương án B. Dữ liệu được lưu bằng Java Serialization vào file `data/auction-data.ser`.
+
+## Yêu cầu
 - JDK 26
-- Spring Boot 4.1.1 (hỗ trợ Java 26 theo tài liệu chính thức)
-- JavaFX 26, FXML
-- MySQL 8+
 - Maven 3.9+
-- JUnit 5
+- JavaFX Maven plugin tải các thư viện JavaFX qua Maven
 
 ## Cấu trúc
-- `server/`: REST API, nghiệp vụ, JPA, transaction, WebSocket broadcast
-- `client/`: JavaFX UI, REST client, WebSocket listener
-- `database/schema.sql`: schema tham khảo
-- `.github/workflows/ci.yml`: build/test backend và build client
+- `common/`: model dùng chung giữa client và server; DTO/protocol Serializable
+- `server/`: Socket server, xử lý nhiều client, AuctionManager Singleton, persistence
+- `client/`: JavaFX/FXML, MVC, Socket client và Observer UI update
+- `docs/`: sơ đồ lớp, luồng, kế hoạch theo tuần và phân công
 
-## 1. Kiểm tra môi trường
+## Build và test
+Tại thư mục gốc:
 ```bash
-java -version
-mvn -version
-```
-Cả `java -version` và `mvn -version` phải trỏ đến JDK 26. Cài Maven 3.9+ và MySQL 8+.
-
-## 2. Tạo database
-Chạy `database/schema.sql` bằng MySQL Workbench hoặc:
-```sql
-CREATE DATABASE online_auction CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-```
-Sau đó cấu hình biến môi trường:
-- `AUCTION_DB_URL=jdbc:mysql://localhost:3306/online_auction`
-- `AUCTION_DB_USER=auction_user`
-- `AUCTION_DB_PASSWORD=your_password`
-
-Hoặc sửa `server/src/main/resources/application.properties` trên máy cá nhân (không commit mật khẩu thật).
-
-## 3. Chạy server
-```bash
-cd server
 mvn clean test
-mvn spring-boot:run
 ```
-Server mặc định tại `http://localhost:8080`.
-Kiểm tra: `GET http://localhost:8080/api/auctions`.
-
-## 4. Chạy JavaFX client
-Mở terminal thứ hai:
+Chạy server ở terminal 1:
 ```bash
-cd client
-mvn clean javafx:run
+mvn -pl server -am exec:java -Dexec.mainClass="ltnc.auction.server.AuctionServer"
 ```
-Client gọi REST tại `http://localhost:8080` và nghe WebSocket tại `ws://localhost:8080/ws/auctions`.
+Chạy client ở terminal 2:
+```bash
+mvn -pl client -am javafx:run
+```
+Nếu JavaFX plugin không nhận lệnh ở root, chạy `mvn javafx:run` trong thư mục `client` sau khi cài common: `mvn -pl common install`.
 
-## 5. API khởi đầu
-- `GET /api/auctions`
-- `GET /api/auctions/{id}`
-- `POST /api/auctions` — tạo phiên mẫu, cần sellerId hợp lệ trong bản hoàn thiện
-- `POST /api/auctions/{id}/bids` — body `{ "bidderId": 2, "amount": 120.00 }`
-- `POST /api/users/register`
-- `GET /api/health`
+Mặc định server lắng nghe cổng `5050`; dữ liệu lưu ở `server/data/auction-data.ser`. Có thể đổi bằng biến môi trường `AUCTION_PORT` và `AUCTION_DATA_FILE`.
 
-## 6. Lưu ý quan trọng trước khi nộp
-1. Đây là starter scaffold để nhóm phát triển, không phải sản phẩm thương mại hoàn chỉnh.
-2. Mẫu ban đầu chưa triển khai JWT/session authentication; `bidderId` trong request chỉ phục vụ phát triển và phải thay bằng danh tính đã xác thực trước khi nộp.
-3. Đăng ký hiện là khung minh họa và chưa có đăng nhập/xác thực đầy đủ. Trước khi nộp, triển khai BCryptPasswordEncoder (không dùng hashCode), endpoint đăng nhập, token/session và phân quyền ở server; kiểm tra quyền sở hữu Seller.
-4. Đặt giá được khóa bằng `PESSIMISTIC_WRITE` trong transaction. Không dựa vào giá trên client.
-5. Broadcast WebSocket chỉ chạy sau khi transaction hoàn tất. Khi client reconnect, luôn tải lại snapshot qua REST.
-6. Bổ sung anti-sniping/auto-bidding/biểu đồ sau khi chức năng bắt buộc ổn định.
-7. JavaFX chạy trên các hệ điều hành khác nhau cần dependency JavaFX native tương ứng; Maven OpenJFX xử lý phần lớn việc chọn dependency theo nền tảng.
+## Chức năng starter
+- User abstract và Bidder/Seller/Admin
+- Item abstract và Electronics/Art/Vehicle; ItemFactory (Factory Method đơn giản)
+- Auction, Bid, AuctionManager (Singleton)
+- Socket protocol bằng object serialization
+- Observer thông báo khi có bid mới
+- Khóa `ReentrantLock` theo phiên để tránh xử lý đặt giá đồng thời sai
+- Custom exceptions
+- Serialization lưu/tải state
+- JavaFX/FXML MVC client cơ bản: tải danh sách phiên, đặt giá, hiển thị thông báo
+
+## Các bước bắt buộc nhóm cần hoàn thiện
+1. Hoàn thiện xác thực: starter chỉ minh họa luồng login, không dùng ngoài môi trường bài tập.
+2. Thêm CRUD đầy đủ sản phẩm và màn hình Seller/Admin.
+3. Hoàn thiện kết thúc phiên, xác định người thắng và xử lý PAID/CANCELED theo đặc tả nhóm.
+4. Bổ sung test concurrency và persistence; đạt coverage >=60% bằng JaCoCo nếu giảng viên yêu cầu đo bằng công cụ.
+5. Thêm Checkstyle và giữ GitHub Actions xanh.
+6. Review bảo mật Java Serialization: chỉ deserialize dữ liệu từ peer tin cậy; với bài tập, giới hạn kết nối localhost.
+
+## Git workflow
+Dùng `main` và `dev`; mỗi thành viên tạo feature branch, commit theo Conventional Commits và mở PR để review.

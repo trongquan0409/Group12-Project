@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.geometry.Insets?><?import javafx.scene.control.*?><?import javafx.scene.layout.*?>
+<VBox xmlns:fx="http://javafx.com/fxml/1" fx:controller="ltnc.auction.client.controller.AuctionListController" spacing="10" style="-fx-padding: 18;">
+ <Label text="HỆ THỐNG ĐẤU GIÁ TRỰC TUYẾN" style="-fx-font-size: 20px; -fx-font-weight: bold;"/>
+ <HBox spacing="8"><Button text="Tải danh sách phiên" onAction="#loadAuctions"/><Label text="Mã phiên mẫu: auction-1"/></HBox>
+ <ListView fx:id="auctionList" VBox.vgrow="ALWAYS"/>
+ <GridPane hgap="8" vgap="8"><Label text="Tên người đặt" GridPane.rowIndex="0" GridPane.columnIndex="0"/><TextField fx:id="usernameField" GridPane.rowIndex="0" GridPane.columnIndex="1"/><Label text="Mã phiên" GridPane.rowIndex="1" GridPane.columnIndex="0"/><TextField fx:id="auctionIdField" GridPane.rowIndex="1" GridPane.columnIndex="1"/><Label text="Mức giá" GridPane.rowIndex="2" GridPane.columnIndex="0"/><TextField fx:id="amountField" promptText="Ví dụ: 120000" GridPane.rowIndex="2" GridPane.columnIndex="1"/><Button text="Đặt giá" onAction="#placeBid" GridPane.rowIndex="3" GridPane.columnIndex="1"/></GridPane>
+ <Label fx:id="statusLabel" text="Sẵn sàng" wrapText="true"/>
+</VBox>

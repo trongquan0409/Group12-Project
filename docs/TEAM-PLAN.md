@@ -1,22 +1,21 @@
-# Phân công nhóm 4 người
+# Phân công 4 thành viên
+1. **Thành viên 1 — User & Auth**: `User` abstract, `Bidder/Seller/Admin`, đăng ký/đăng nhập, kiểm tra vai trò, `AuthenticationException`, test.
+2. **Thành viên 2 — Item & Auction**: `Item` abstract, `Electronics/Art/Vehicle`, `ItemFactory`, CRUD sản phẩm, tạo phiên, trạng thái phiên, `AuctionStore` phối hợp với thành viên 3.
+3. **Thành viên 3 — Bidding & concurrency**: `Bid`, `AuctionManager` Singleton, kiểm tra giá, `ReentrantLock`, exceptions, kết thúc phiên/xác định người thắng, unit/concurrency tests.
+4. **Thành viên 4 — GUI & networking**: JavaFX/FXML MVC, Socket client/server integration, Observer notification fan-out, UX, test tích hợp.
 
-| Người | Owner | File/thư mục trọng tâm | Kết quả |
-|---|---|---|---|
-| 1 | Kiến trúc, tích hợp, đấu giá đồng thời | `AuctionService`, `AuctionRepository`, CI | bid transaction-safe, test concurrency, review PR |
-| 2 | User, auth, schema | `UserAccount`, `UserService`, `UserController`, `database/` | đăng ký/đăng nhập thật, hash mật khẩu, phân quyền server |
-| 3 | Item/Auction lifecycle | `Item`, CRUD, scheduler, lịch sử | tạo/sửa/xóa item/auction, kết thúc phiên đúng |
-| 4 | JavaFX và realtime | `client/`, FXML, WebSocket | màn hình list/detail/seller, lỗi UI, nhận event realtime |
+## Hợp đồng tích hợp
+- Request/Response Serializable nằm trong `common.protocol`.
+- Model dùng chung nằm trong `common.model`.
+- Mọi thay đổi protocol/model phải được cả nhóm review trước khi merge.
+- `main` chỉ chứa bản ổn định; phát triển trên `dev` và feature branches.
 
-## Cách tích hợp
-1. Người 1 tạo repo và skeleton, `main` luôn build được.
-2. Mỗi người làm branch `feat/<tinh-nang>`, commit nhỏ, tạo Pull Request.
-3. Không tự ý đổi DTO/endpoint; thay đổi API phải cập nhật `docs/API.md` và báo nhóm.
-4. Mỗi PR cần có cách test và ít nhất một người review.
-5. Mỗi ngày ghép code ít nhất một lần; không đợi tới cuối tuần.
-6. Trước demo, một thành viên clone repo sạch và làm theo README để xác minh hướng dẫn chạy.
-
-## Tiến độ đề xuất 4 tuần
-- Tuần 1: schema, API contract, project build, GUI mock.
-- Tuần 2: user, CRUD item/auction, danh sách/chi tiết.
-- Tuần 3: bidding transaction, history, scheduler, WebSocket, JUnit.
-- Tuần 4: security, concurrency test, CI, sửa lỗi, báo cáo và bảo vệ.
+## Lộ trình theo hướng dẫn môn học
+- Tuần 6: scope, GitHub, class diagram, OOP, Singleton, Factory, JavaFX Hello World.
+- Tuần 7: Observer, nghiệp vụ đặt giá, trạng thái phiên, concurrency, Login/List GUI.
+- Tuần 8: custom exceptions, JUnit, refactor SOLID, MVC/FXML.
+- Tuần 9: Maven, Checkstyle, GitHub Actions, Socket và Serialization.
+- Tuần 10: multi-client, Observer qua Socket, hoàn thiện các màn hình, đặt mục tiêu coverage >=60%.
+- Tuần 11–12: tích hợp GUI–logic–network–data, test end-to-end nhiều client, sửa lỗi.
+- Tuần 13–14: polish UI, test toàn hệ thống, chức năng nâng cao nếu kịp, README.
+- Tuần 15: slide, demo server + nhiều client, mọi thành viên giải thích được code.
