@@ -1,9 +1,54 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<?import javafx.geometry.Insets?><?import javafx.scene.control.*?><?import javafx.scene.layout.*?>
-<VBox xmlns:fx="http://javafx.com/fxml/1" fx:controller="ltnc.auction.client.controller.AuctionListController" spacing="10" style="-fx-padding: 18;">
- <Label text="HỆ THỐNG ĐẤU GIÁ TRỰC TUYẾN" style="-fx-font-size: 20px; -fx-font-weight: bold;"/>
- <HBox spacing="8"><Button text="Tải danh sách phiên" onAction="#loadAuctions"/><Label text="Mã phiên mẫu: auction-1"/></HBox>
- <ListView fx:id="auctionList" VBox.vgrow="ALWAYS"/>
- <GridPane hgap="8" vgap="8"><Label text="Tên người đặt" GridPane.rowIndex="0" GridPane.columnIndex="0"/><TextField fx:id="usernameField" GridPane.rowIndex="0" GridPane.columnIndex="1"/><Label text="Mã phiên" GridPane.rowIndex="1" GridPane.columnIndex="0"/><TextField fx:id="auctionIdField" GridPane.rowIndex="1" GridPane.columnIndex="1"/><Label text="Mức giá" GridPane.rowIndex="2" GridPane.columnIndex="0"/><TextField fx:id="amountField" promptText="Ví dụ: 120000" GridPane.rowIndex="2" GridPane.columnIndex="1"/><Button text="Đặt giá" onAction="#placeBid" GridPane.rowIndex="3" GridPane.columnIndex="1"/></GridPane>
- <Label fx:id="statusLabel" text="Sẵn sàng" wrapText="true"/>
-</VBox>
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ListView?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+
+<BorderPane xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="ltnc.auction.client.controller.AuctionListController"
+            stylesheets="@/styles.css">
+    <top>
+        <VBox spacing="6" styleClass="header">
+            <padding>
+                <Insets top="18" right="22" bottom="16" left="22" />
+            </padding>
+            <Label text="SÀN ĐẤU GIÁ TRỰC TUYẾN" styleClass="title" />
+            <Label text="Theo dõi phiên đấu giá và gửi mức giá của bạn" styleClass="subtitle" />
+        </VBox>
+    </top>
+    <center>
+        <VBox spacing="14">
+            <padding>
+                <Insets top="18" right="22" bottom="20" left="22" />
+            </padding>
+            <HBox spacing="12" alignment="CENTER_LEFT">
+                <Button text="Tải danh sách phiên" onAction="#loadAuctions" styleClass="primary-button" />
+                <Label text="Danh sách phiên đấu giá" styleClass="section-title" />
+            </HBox>
+            <ListView fx:id="auctionList" VBox.vgrow="ALWAYS" styleClass="auction-list" />
+            <VBox spacing="10" styleClass="bid-panel">
+                <Label text="Đặt giá" styleClass="section-title" />
+                <GridPane hgap="12" vgap="10">
+                    <columnConstraints>
+                        <javafx.scene.layout.ColumnConstraints minWidth="120" />
+                        <javafx.scene.layout.ColumnConstraints hgrow="ALWAYS" />
+                    </columnConstraints>
+                    <Label text="Tên người đặt" GridPane.rowIndex="0" GridPane.columnIndex="0" />
+                    <TextField fx:id="usernameField" promptText="Ví dụ: bidder-demo" GridPane.rowIndex="0" GridPane.columnIndex="1" />
+                    <Label text="Mã phiên" GridPane.rowIndex="1" GridPane.columnIndex="0" />
+                    <TextField fx:id="auctionIdField" promptText="Ví dụ: auction-1" GridPane.rowIndex="1" GridPane.columnIndex="1" />
+                    <Label text="Mức giá (VNĐ)" GridPane.rowIndex="2" GridPane.columnIndex="0" />
+                    <TextField fx:id="amountField" promptText="Nhập mức giá muốn đặt" GridPane.rowIndex="2" GridPane.columnIndex="1" />
+                    <Button text="Đặt giá" onAction="#placeBid" styleClass="primary-button"
+                            GridPane.rowIndex="3" GridPane.columnIndex="1" />
+                </GridPane>
+            </VBox>
+            <Label fx:id="statusLabel" text="Sẵn sàng" wrapText="true" styleClass="status-label" />
+        </VBox>
+    </center>
+</BorderPane>
