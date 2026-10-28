@@ -1,3 +1,46 @@
-.root { -fx-font-family: "Arial"; -fx-font-size: 13px; }
-.header { -fx-background-color: #edf4fb; }
-.title { -fx-font-size: 20px; -fx-font-weight: bold; }
+.root {
+    -fx-font-family: "Arial";
+    -fx-font-size: 13px;
+    -fx-background-color: #f4f6fa;
+}
+
+.app-root { -fx-background-color: #f4f6fa; }
+.auth-wrap { -fx-padding: 30px; -fx-max-width: 440px; }
+.brand { -fx-font-size: 30px; -fx-font-weight: bold; -fx-text-fill: #173b6c; }
+.brand-small { -fx-font-size: 20px; -fx-font-weight: bold; -fx-text-fill: #173b6c; }
+.subtitle, .muted { -fx-text-fill: #667085; }
+
+.card {
+    -fx-background-color: white;
+    -fx-background-radius: 12px;
+    -fx-padding: 18px;
+    -fx-border-color: #e2e7ef;
+    -fx-border-radius: 12px;
+}
+.auth-card { -fx-padding: 24px; }
+.section-title { -fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #253858; }
+.primary-button {
+    -fx-background-color: #245ca6;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-background-radius: 7px;
+    -fx-padding: 10px 16px;
+}
+.primary-button:hover { -fx-background-color: #17477f; }
+.link-button { -fx-background-color: transparent; -fx-text-fill: #245ca6; }
+
+.topbar {
+    -fx-background-color: white;
+    -fx-padding: 14px 22px;
+    -fx-border-color: transparent transparent #e2e7ef transparent;
+}
+.sidebar { -fx-background-color: white; -fx-padding: 20px 12px; -fx-pref-width: 205px; }
+.nav-item { -fx-background-color: transparent; -fx-alignment: CENTER_LEFT; -fx-padding: 10px; -fx-max-width: Infinity; }
+.eyebrow { -fx-font-size: 10px; -fx-font-weight: bold; -fx-text-fill: #8290a5; }
+.page { -fx-padding: 24px; }
+.page-title { -fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: #182b49; }
+.metric { -fx-background-color: white; -fx-padding: 16px; -fx-background-radius: 10px; -fx-pref-width: 170px; }
+.metric-value { -fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: #245ca6; }
+.form-card { -fx-pref-width: 360px; }
+.bid-card { -fx-pref-width: 250px; }
+.notice { -fx-text-fill: #52637a; -fx-background-color: #f1f5fb; -fx-padding: 10px; -fx-background-radius: 6px; }

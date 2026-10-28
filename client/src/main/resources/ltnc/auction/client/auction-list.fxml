@@ -1,9 +1,53 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<?import javafx.geometry.Insets?><?import javafx.scene.control.*?><?import javafx.scene.layout.*?>
-<VBox xmlns:fx="http://javafx.com/fxml/1" fx:controller="ltnc.auction.client.controller.AuctionListController" spacing="10" style="-fx-padding: 18;">
- <Label text="HỆ THỐNG ĐẤU GIÁ TRỰC TUYẾN" style="-fx-font-size: 20px; -fx-font-weight: bold;"/>
- <HBox spacing="8"><Button text="Tải danh sách phiên" onAction="#loadAuctions"/><Label text="Mã phiên mẫu: auction-1"/></HBox>
- <ListView fx:id="auctionList" VBox.vgrow="ALWAYS"/>
- <GridPane hgap="8" vgap="8"><Label text="Tên người đặt" GridPane.rowIndex="0" GridPane.columnIndex="0"/><TextField fx:id="usernameField" GridPane.rowIndex="0" GridPane.columnIndex="1"/><Label text="Mã phiên" GridPane.rowIndex="1" GridPane.columnIndex="0"/><TextField fx:id="auctionIdField" GridPane.rowIndex="1" GridPane.columnIndex="1"/><Label text="Mức giá" GridPane.rowIndex="2" GridPane.columnIndex="0"/><TextField fx:id="amountField" promptText="Ví dụ: 120000" GridPane.rowIndex="2" GridPane.columnIndex="1"/><Button text="Đặt giá" onAction="#placeBid" GridPane.rowIndex="3" GridPane.columnIndex="1"/></GridPane>
- <Label fx:id="statusLabel" text="Sẵn sàng" wrapText="true"/>
-</VBox>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<StackPane fx:id="root" xmlns:fx="http://javafx.com/fxml/1"
+           fx:controller="ltnc.auction.client.controller.AuctionListController"
+           stylesheets="@/styles.css" styleClass="app-root">
+    <VBox fx:id="authView" alignment="CENTER" spacing="18" styleClass="auth-wrap">
+        <Label text="BIDWISE" styleClass="brand" />
+        <Label text="Nền tảng đấu giá trực tuyến" styleClass="subtitle" />
+        <VBox spacing="12" styleClass="card auth-card">
+            <Label text="Đăng nhập" styleClass="section-title" />
+            <TextField fx:id="loginUsername" promptText="Tên đăng nhập" />
+            <PasswordField fx:id="loginPassword" promptText="Mật khẩu" />
+            <ChoiceBox fx:id="loginRole" maxWidth="Infinity" />
+            <Button text="Đăng nhập (bản mẫu)" onAction="#signIn" styleClass="primary-button" maxWidth="Infinity" />
+            <Button text="Tạo tài khoản người bán / người đấu giá" onAction="#showRegister" styleClass="link-button" maxWidth="Infinity" />
+            <Label fx:id="authMessage" wrapText="true" styleClass="muted" />
+        </VBox>
+        <Label text="Đăng nhập và đăng ký sẽ kết nối backend sau khi API sẵn sàng." styleClass="muted" />
+    </VBox>
+
+    <VBox fx:id="registerView" visible="false" managed="false" alignment="CENTER" spacing="18" styleClass="auth-wrap">
+        <Label text="Tạo tài khoản" styleClass="brand" />
+        <VBox spacing="12" styleClass="card auth-card">
+            <Label text="Đăng ký" styleClass="section-title" />
+            <TextField fx:id="registerUsername" promptText="Tên đăng nhập" />
+            <PasswordField fx:id="registerPassword" promptText="Mật khẩu" />
+            <ChoiceBox fx:id="registerRole" maxWidth="Infinity" />
+            <Button text="Tạo tài khoản (bản mẫu)" onAction="#register" styleClass="primary-button" maxWidth="Infinity" />
+            <Button text="Quay lại đăng nhập" onAction="#showLogin" styleClass="link-button" maxWidth="Infinity" />
+            <Label fx:id="registerMessage" wrapText="true" styleClass="muted" />
+        </VBox>
+    </VBox>
+
+    <BorderPane fx:id="adminView" visible="false" managed="false" styleClass="workspace">
+        <top><HBox alignment="CENTER_LEFT" spacing="12" styleClass="topbar"><Label text="BIDWISE" styleClass="brand-small"/><Region HBox.hgrow="ALWAYS"/><Label text="Quản trị hệ thống" styleClass="muted"/><Button text="Đăng xuất" onAction="#signOut"/></HBox></top>
+        <left><VBox spacing="8" styleClass="sidebar"><Label text="QUẢN TRỊ" styleClass="eyebrow"/><Button text="Tổng quan" styleClass="nav-item"/><Button text="Tài khoản" styleClass="nav-item"/><Button text="Sản phẩm &amp; phiên" styleClass="nav-item"/><Button text="Lịch sử đấu giá" styleClass="nav-item"/></VBox></left>
+        <center><VBox spacing="18" styleClass="page"><Label text="Tổng quan hệ thống" styleClass="page-title"/><Label text="Quản lý dữ liệu và hoạt động toàn sàn" styleClass="muted"/><HBox spacing="12"><VBox styleClass="metric"><Label text="Tài khoản"/><Label text="—" styleClass="metric-value"/></VBox><VBox styleClass="metric"><Label text="Phiên đang mở"/><Label text="—" styleClass="metric-value"/></VBox><VBox styleClass="metric"><Label text="Lượt đặt giá"/><Label text="—" styleClass="metric-value"/></VBox></HBox><VBox styleClass="card" spacing="10"><Label text="Quản lý toàn hệ thống" styleClass="section-title"/><Label text="Tài khoản • sản phẩm • giá hiện tại • lịch sử giao dịch" styleClass="muted"/><Label text="Các bảng dữ liệu sẽ được nối với API quản trị." styleClass="notice"/></VBox></VBox></center>
+    </BorderPane>
+
+    <BorderPane fx:id="sellerView" visible="false" managed="false" styleClass="workspace">
+        <top><HBox alignment="CENTER_LEFT" spacing="12" styleClass="topbar"><Label text="BIDWISE" styleClass="brand-small"/><Region HBox.hgrow="ALWAYS"/><Label text="Khu vực người bán" styleClass="muted"/><Button text="Đăng xuất" onAction="#signOut"/></HBox></top>
+        <left><VBox spacing="8" styleClass="sidebar"><Label text="NGƯỜI BÁN" styleClass="eyebrow"/><Button text="Sản phẩm của tôi" styleClass="nav-item"/><Button text="Tạo phiên đấu giá" styleClass="nav-item"/><Button text="Kết quả &amp; lịch sử" styleClass="nav-item"/></VBox></left>
+        <center><VBox spacing="16" styleClass="page"><Label text="Quản lý sản phẩm và phiên" styleClass="page-title"/><Label text="Thiết lập sản phẩm, giá khởi điểm và bước giá" styleClass="muted"/><HBox spacing="14"><VBox styleClass="card form-card" spacing="10"><Label text="Đăng sản phẩm / tạo phiên" styleClass="section-title"/><TextField promptText="Tên sản phẩm"/><TextArea promptText="Mô tả sản phẩm" prefRowCount="3"/><TextField promptText="Giá khởi điểm (VNĐ)"/><TextField promptText="Bước nhảy tối thiểu (VNĐ)"/><DatePicker promptText="Ngày kết thúc"/><Button text="Tạo phiên" onAction="#showPrototypeMessage" styleClass="primary-button"/></VBox><VBox styleClass="card" spacing="10"><Label text="Phiên của tôi" styleClass="section-title"/><Label text="Danh sách phiên sẽ hiển thị sau khi kết nối backend." styleClass="muted"/></VBox></HBox></VBox></center>
+    </BorderPane>
+
+    <BorderPane fx:id="bidderView" visible="false" managed="false" styleClass="workspace">
+        <top><HBox alignment="CENTER_LEFT" spacing="12" styleClass="topbar"><Label text="BIDWISE" styleClass="brand-small"/><Region HBox.hgrow="ALWAYS"/><Label text="Khu vực người đấu giá" styleClass="muted"/><Button text="Đăng xuất" onAction="#signOut"/></HBox></top>
+        <left><VBox spacing="8" styleClass="sidebar"><Label text="NGƯỜI ĐẤU GIÁ" styleClass="eyebrow"/><Button text="Khám phá phiên" styleClass="nav-item"/><Button text="Phiên đang tham gia" styleClass="nav-item"/><Button text="Lịch sử đặt giá" styleClass="nav-item"/></VBox></left>
+        <center><VBox spacing="16" styleClass="page"><Label text="Khám phá phiên đấu giá" styleClass="page-title"/><Label text="Tìm phiên phù hợp và theo dõi mức giá hiện tại" styleClass="muted"/><HBox spacing="10"><TextField promptText="Tìm theo tên sản phẩm hoặc mã phiên" HBox.hgrow="ALWAYS"/><ComboBox promptText="Trạng thái" prefWidth="150"/><Button text="Tìm kiếm"/></HBox><HBox spacing="14"><VBox styleClass="card" spacing="10" HBox.hgrow="ALWAYS"><Label text="Danh sách phiên" styleClass="section-title"/><ListView fx:id="auctionList" prefHeight="250" VBox.vgrow="ALWAYS"/><Label text="Chọn phiên để xem và đặt giá." styleClass="muted"/></VBox><VBox styleClass="card bid-card" spacing="10"><Label text="Đặt giá" styleClass="section-title"/><TextField fx:id="auctionIdField" promptText="Mã phiên"/><TextField fx:id="amountField" promptText="Giá muốn đặt (VNĐ)"/><Button text="Gửi mức giá" onAction="#placeBid" styleClass="primary-button"/><Label fx:id="statusLabel" text="Danh sách đang tải…" wrapText="true" styleClass="notice"/></VBox></HBox></VBox></center>
+    </BorderPane>
+</StackPane>
