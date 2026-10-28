@@ -1,8 +1,29 @@
 package ltnc.auction.common.model;
-import java.io.Serializable;
-import java.math.BigDecimal;
-public abstract class Item implements Serializable {
- private static final long serialVersionUID=1L; private final String id; private final String name; private final String description; private final String sellerId; private final BigDecimal reservePrice;
- protected Item(String id,String name,String description,String sellerId,BigDecimal reservePrice){this.id=id;this.name=name;this.description=description;this.sellerId=sellerId;this.reservePrice=reservePrice;}
- public String getId(){return id;} public String getName(){return name;} public String getDescription(){return description;} public String getSellerId(){return sellerId;} public BigDecimal getReservePrice(){return reservePrice;} public abstract String getCategory();
+import java.time.Instant;
+
+public abstract class Item extends Entity {
+ private String name;
+ private String description;
+ private final long sellerId;
+
+ protected Item(Long id, Instant createAt, Instant updateAt, String name, String description, long sellerId) {
+  super(id, createAt, updateAt);
+  if (sellerId <= 0) throw new IllegalArgumentException("Invalid sellerId");
+  this.sellerId = sellerId;
+  this.updateBasicInfo(name, description);
+ }
+
+ public String getName() { return name; }
+ public String getDescription() { return description; }
+ public long getSellerId() { return sellerId; }
+
+ public final void updateBasicInfo(String name, String description) {
+  if (name == null || name.isBlank()) throw new IllegalArgumentException("Invalid name");
+  this.name = name.trim();
+  this.description = (description == null) ? "" : description.trim();
+  super.touch();
+ }
+
+ public abstract ItemType getCategory();
+ public abstract String getInfo();
 }
