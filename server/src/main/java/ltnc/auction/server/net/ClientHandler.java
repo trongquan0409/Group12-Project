@@ -92,6 +92,28 @@ public final class ClientHandler implements Runnable {
                     manager.listAuctions()
             );
 
+    case LIST_BIDS -> {
+     var bids = manager.listBids(request.getAuctionId());
+
+     if (bids.isEmpty()) {
+      yield new Response(
+              true,
+              "Phiên đấu giá chưa có lượt đặt giá.",
+              null,
+              null,
+              bids
+      );
+     }
+
+     yield new Response(
+             true,
+             "Đã tải lịch sử đặt giá.",
+             null,
+             null,
+             bids
+     );
+    }
+
     case PLACE_BID -> {
      Bid bid = manager.placeBid(
              request.getAuctionId(),
