@@ -145,18 +145,62 @@
                     <ComboBox promptText="Trạng thái" prefWidth="150"/>
                     <Button text="Tìm kiếm"/>
                 </HBox>
+
                 <HBox spacing="14">
                     <VBox styleClass="card" spacing="10" HBox.hgrow="ALWAYS">
                         <Label text="Danh sách phiên" styleClass="section-title"/>
-                        <ListView fx:id="auctionList" prefHeight="250" VBox.vgrow="ALWAYS"/>
-                        <Label text="Chọn phiên để xem và đặt giá." styleClass="muted"/>
+
+                        <ListView fx:id="auctionList"
+                                  prefHeight="220"
+                                  VBox.vgrow="ALWAYS"/>
+
+                        <Label text="Chọn phiên để xem lịch sử và đặt giá."
+                               styleClass="muted"/>
+
+                        <Separator/>
+
+                        <Label text="Lịch sử đặt giá"
+                               styleClass="section-title"/>
+
+                        <TableView fx:id="bidHistoryTable"
+                                   prefHeight="220"
+                                   VBox.vgrow="ALWAYS">
+                            <columns>
+                                <TableColumn fx:id="bidderColumn"
+                                             text="Người đặt"
+                                             prefWidth="120"/>
+
+                                <TableColumn fx:id="amountColumn"
+                                             text="Mức giá (VNĐ)"
+                                             prefWidth="150"/>
+
+                                <TableColumn fx:id="timeColumn"
+                                             text="Thời gian"
+                                             prefWidth="180"/>
+                            </columns>
+                            <placeholder>
+                                <Label text="Chọn phiên để xem lịch sử đặt giá."/>
+                            </placeholder>
+                        </TableView>
                     </VBox>
+
                     <VBox styleClass="card bid-card" spacing="10">
                         <Label text="Đặt giá" styleClass="section-title"/>
-                        <TextField fx:id="auctionIdField" promptText="Mã phiên"/>
-                        <TextField fx:id="amountField" promptText="Giá muốn đặt (VNĐ)"/>
-                        <Button text="Gửi mức giá" onAction="#placeBid" styleClass="primary-button"/>
-                        <Label fx:id="statusLabel" text="Danh sách đang tải…" wrapText="true" styleClass="notice"/>
+
+                        <TextField fx:id="auctionIdField"
+                                   promptText="Mã phiên"/>
+
+                        <TextField fx:id="amountField"
+                                   promptText="Giá muốn đặt (VNĐ)"/>
+
+                        <Button text="Gửi mức giá"
+                                onAction="#placeBid"
+                                styleClass="primary-button"/>
+
+                        <Label fx:id="statusLabel"
+                               text="Danh sách đang tải…"
+                               wrapText="true"
+                               styleClass="notice"/>
                     </VBox>
                 </HBox>
             </VBox>
