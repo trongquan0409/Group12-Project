@@ -15,175 +15,172 @@ import ltnc.auction.server.service.AuthService;
 
 public final class ClientHandler implements Runnable {
 
- private final Socket socket;
- private final AuctionManager manager;
- private final AuthService authService;
+    private final Socket socket;
+    private final AuctionManager manager;
+    private final AuthService authService;
 
- public ClientHandler(
-         Socket socket,
-         AuctionManager manager,
-         AuthService authService
- ) {
-  this.socket = socket;
-  this.manager = manager;
-  this.authService = authService;
- }
-
- @Override
- public void run() {
-  try (
-          Socket clientSocket = socket;
-          ObjectOutputStream out =
-                  new ObjectOutputStream(clientSocket.getOutputStream());
-          ObjectInputStream in =
-                  new ObjectInputStream(clientSocket.getInputStream())
-  ) {
-   out.flush();
-
-   while (true) {
-    Object obj;
-
-    try {
-     obj = in.readObject();
-    } catch (EOFException exception) {
-     break;
+    public ClientHandler(
+            Socket socket,
+            AuctionManager manager,
+            AuthService authService
+    ) {
+        this.socket = socket;
+        this.manager = manager;
+        this.authService = authService;
     }
 
-    if (!(obj instanceof Request request)) {
-     out.writeObject(
-             new Response(false, "Yêu cầu không hợp lệ", null)
-     );
-     out.flush();
-     continue;
+    @Override
+    public void run() {
+        try (
+                Socket clientSocket = socket;
+                ObjectOutputStream out =
+                        new ObjectOutputStream(clientSocket.getOutputStream());
+                ObjectInputStream in =
+                        new ObjectInputStream(clientSocket.getInputStream())
+        ) {
+            out.flush();
+
+            while (true) {
+                Object obj;
+
+                try {
+                    obj = in.readObject();
+                } catch (EOFException exception) {
+                    break;
+                }
+
+                if (!(obj instanceof Request request)) {
+                    out.writeObject(
+                            new Response(false, "Yêu cầu không hợp lệ", null)
+                    );
+                    out.flush();
+                    continue;
+                }
+
+                Response response = handle(request);
+
+                out.writeObject(response);
+                out.flush();
+                out.reset();
+            }
+
+        } catch (Exception exception) {
+            System.err.println(
+                    "Lỗi xử lý client: " + exception.getMessage()
+            );
+        }
     }
 
-    Response response = handle(request);
+    private Response handle(Request request) {
+        if (request == null || request.getType() == null) {
+            return new Response(false, "Loại yêu cầu không hợp lệ", null);
+        }
 
-    out.writeObject(response);
-    out.flush();
-    out.reset();
-   }
+        try {
+            return switch (request.getType()) {
 
-  } catch (Exception exception) {
-   System.err.println(
-           "Lỗi xử lý client: " + exception.getMessage()
-   );
-  }
- }
+                case PING -> new Response(true, "PONG", null);
 
- private Response handle(Request request) {
-  if (request == null || request.type() == null) {
-   return new Response(false, "Loại yêu cầu không hợp lệ", null);
-  }
+                case LOGIN -> handleLogin(request);
 
-  try {
-   return switch (request.type()) {
+                case REGISTER -> handleRegister(request);
 
-    case PING ->
-            new Response(true, "PONG", null);
+                case LIST_AUCTIONS -> new Response(
+                        true,
+                        "OK",
+                        manager.listAuctions()
+                );
 
-    case LOGIN -> handleLogin(request);
+                case LIST_BIDS -> {
+                    var bids = manager.listBids(request.getAuctionId());
 
-    case REGISTER -> handleRegister(request);
+                    if (bids.isEmpty()) {
+                        yield new Response(
+                                true,
+                                "Phiên đấu giá chưa có lượt đặt giá.",
+                                null,
+                                null,
+                                bids
+                        );
+                    }
 
-    case LIST_AUCTIONS ->
-            new Response(
-                    true,
-                    "OK",
-                    manager.listAuctions()
+                    yield new Response(
+                            true,
+                            "Đã tải lịch sử đặt giá.",
+                            null,
+                            null,
+                            bids
+                    );
+                }
+
+                case PLACE_BID -> {
+                    Bid bid = manager.placeBid(
+                            request.getAuctionId(),
+                            request.getUsername(),
+                            request.getAmount()
+                    );
+
+                    yield new Response(
+                            true,
+                            "Đặt giá thành công: " + bid.amount() + "!",
+                            null
+                    );
+                }
+
+                case CREATE_AUCTION -> new Response(
+                        false,
+                        "Chức năng tạo phiên đấu giá chưa được triển khai!",
+                        null
+                );
+            };
+
+        } catch (InvalidBidException | AuctionClosedException exception) {
+            return new Response(false, exception.getMessage(), null);
+
+        } catch (IllegalArgumentException exception) {
+            return new Response(false, exception.getMessage(), null);
+
+        } catch (Exception exception) {
+            System.err.println(
+                    "Lỗi nghiệp vụ: " + exception.getMessage()
             );
 
-    case LIST_BIDS -> {
-     var bids = manager.listBids(request.auctionId());
-
-     if (bids.isEmpty()) {
-      yield new Response(
-              true,
-              "Phiên đấu giá chưa có lượt đặt giá.",
-              null,
-              null,
-              bids
-      );
-     }
-
-     yield new Response(
-             true,
-             "Đã tải lịch sử đặt giá.",
-             null,
-             null,
-             bids
-     );
-    }
-
-    case PLACE_BID -> {
-     Bid bid = manager.placeBid(
-             request.auctionId(),
-             request.username(),
-             request.amount()
-     );
-
-     yield new Response(
-             true,
-             "Đặt giá thành công: " + bid.amount() + "!",
-             null
-     );
-    }
-
-    case CREATE_AUCTION ->
-            new Response(
+            return new Response(
                     false,
-                    "Chức năng tạo phiên đấu giá chưa được triển khai!",
+                    "Đã xảy ra lỗi khi xử lý yêu cầu!",
                     null
             );
-   };
+        }
+    }
 
-  } catch (InvalidBidException | AuctionClosedException exception) {
-   return new Response(false, exception.getMessage(), null);
+    private Response handleLogin(Request request) {
+        String role = authService.authenticate(
+                request.getUsername(),
+                request.getPassword()
+        );
 
-  } catch (IllegalArgumentException exception) {
-   return new Response(false, exception.getMessage(), null);
+        if (role == null) {
+            return new Response(
+                    false,
+                    "Tên đăng nhập hoặc mật khẩu không đúng!",
+                    null
+            );
+        }
 
-  } catch (Exception exception) {
-   System.err.println(
-           "Lỗi nghiệp vụ: " + exception.getMessage()
-   );
+        return new Response(
+                true,
+                "Đăng nhập thành công!",
+                null,
+                role
+        );
+    }
 
-   return new Response(
-           false,
-           "Đã xảy ra lỗi khi xử lý yêu cầu!",
-           null
-   );
-  }
- }
-
- private Response handleLogin(Request request) {
-  String role = authService.authenticate(
-          request.username(),
-          request.password()
-  );
-
-  if (role == null) {
-   return new Response(
-           false,
-           "Tên đăng nhập hoặc mật khẩu không đúng!",
-           null
-   );
-  }
-
-  return new Response(
-          true,
-          "Đăng nhập thành công!",
-          null,
-          role
-  );
- }
-
- private Response handleRegister(Request request) {
-  String role = authService.register(
-          request.getUsername(),
-          request.getPassword(),
-          request.getRole()
-  );
-  return new Response(true, "Đăng ký tài khoản thành công.", null, role);
- }
+    private Response handleRegister(Request request) {
+        String role = authService.register(
+                request.getUsername(),
+                request.getPassword(),
+                request.getRole()
+        );
+        return new Response(true, "Đăng ký tài khoản thành công.", null, role);
+    }
 }

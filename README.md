@@ -2,7 +2,9 @@
 
 Đồ án môn **Lập trình nâng cao (LTNC) 2026** của Nhóm 12.
 
-Dự án xây dựng bộ khung cho một ứng dụng đấu giá trực tuyến gồm máy chủ xử lý phiên đấu giá và ứng dụng JavaFX dành cho người dùng. Hiện tại, repository đang ở giai đoạn starter scaffold; nhóm sẽ tiếp tục hoàn thiện chức năng, kiểm thử và giao diện theo yêu cầu đồ án.
+Dự án xây dựng bộ khung cho một ứng dụng đấu giá trực tuyến gồm máy chủ xử lý phiên đấu giá và ứng dụng JavaFX dành cho
+người dùng. Hiện tại, repository đang ở giai đoạn starter scaffold; nhóm sẽ tiếp tục hoàn thiện chức năng, kiểm thử và
+giao diện theo yêu cầu đồ án.
 
 ## Công nghệ sử dụng
 
@@ -13,7 +15,8 @@ Dự án xây dựng bộ khung cho một ứng dụng đấu giá trực tuyế
 - **Java Serialization và File I/O** để truyền đối tượng và lưu dữ liệu
 - **JUnit 5** cho kiểm thử
 
-Dự án sử dụng kiến trúc client-server, áp dụng các nội dung OOP và một số mẫu thiết kế như MVC, Observer, Singleton và Factory Method.
+Dự án sử dụng kiến trúc client-server, áp dụng các nội dung OOP và một số mẫu thiết kế như MVC, Observer, Singleton và
+Factory Method.
 
 > Dự án hiện không sử dụng Spring Boot, WebSocket hoặc MySQL. Dữ liệu đấu giá được lưu bằng Java Serialization vào file.
 
@@ -46,7 +49,8 @@ Repository hiện mô tả các thành phần nền tảng sau:
 - Lưu và tải trạng thái bằng Java Serialization
 - Giao diện JavaFX/FXML cơ bản để tải danh sách phiên, đặt giá và hiển thị thông báo
 
-Các mục trên thể hiện phạm vi starter được mô tả trong repository; cần kiểm tra mã nguồn và chạy ứng dụng để xác nhận tình trạng thực tế của từng chức năng.
+Các mục trên thể hiện phạm vi starter được mô tả trong repository; cần kiểm tra mã nguồn và chạy ứng dụng để xác nhận
+tình trạng thực tế của từng chức năng.
 
 ## Yêu cầu môi trường
 
@@ -63,6 +67,12 @@ Mở terminal tại thư mục gốc của repository.
 
 ```bash
 mvn clean test
+```
+
+Checkstyle được chạy tự động ở bước `validate` khi build Maven, bao gồm cả mã nguồn chính và mã kiểm thử. Có thể chạy riêng bằng:
+
+```bash
+mvn checkstyle:check
 ```
 
 ### Chạy server

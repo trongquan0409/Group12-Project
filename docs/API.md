@@ -3,11 +3,14 @@
 Base URL: `http://localhost:8080`
 
 ## Health
+
 `GET /api/health`
 Response: `{"status":"UP"}`
 
 ## Users
+
 `POST /api/users/register`
+
 ```json
 {
   "username": "bidder01",
@@ -16,12 +19,15 @@ Response: `{"status":"UP"}`
   "role": "BIDDER"
 }
 ```
+
 Role hợp lệ khi đăng ký: `BIDDER` hoặc `SELLER`; không cho tự đăng ký `ADMIN`.
 
 ## Auctions
+
 `GET /api/auctions`
 `GET /api/auctions/{id}`
 `POST /api/auctions`
+
 ```json
 {
   "sellerId": 1,
@@ -33,15 +39,22 @@ Role hợp lệ khi đăng ký: `BIDDER` hoặc `SELLER`; không cho tự đăng
   "endTime": "2026-10-15T11:00:00Z"
 }
 ```
+
 `GET /api/auctions/{id}/bids`
 `POST /api/auctions/{id}/bids`
+
 ```json
-{ "bidderId": 2, "amount": 1100000 }
+{
+  "bidderId": 2,
+  "amount": 1100000
+}
 ```
 
 ## WebSocket
+
 Connect to `ws://localhost:8080/ws/auctions`.
 Event:
+
 ```json
 {
   "type": "BID_UPDATED",
@@ -54,6 +67,7 @@ Event:
 ```
 
 ## Quy ước lỗi
+
 - `400`: request sai hoặc vi phạm quy tắc nghiệp vụ
 - `404`: nên bổ sung handler riêng cho tài nguyên không tồn tại
 - `500`: lỗi không dự kiến; không trả stack trace cho client

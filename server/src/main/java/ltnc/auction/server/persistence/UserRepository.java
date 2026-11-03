@@ -16,7 +16,9 @@ import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
 
-/** JDBC repository for user accounts stored in the users table. */
+/**
+ * JDBC repository for user accounts stored in the users table.
+ */
 @SuppressWarnings("unused") // Repository is ready for wiring into the account service.
 public final class UserRepository {
     private final DataSource dataSource;
@@ -25,7 +27,9 @@ public final class UserRepository {
         this.dataSource = Objects.requireNonNull(dataSource, "dataSource");
     }
 
-    /** Inserts a new account and returns a copy containing its database ID. */
+    /**
+     * Inserts a new account and returns a copy containing its database ID.
+     */
     public UserAccount save(UserAccount account) {
         Objects.requireNonNull(account, "account");
         String sql = "INSERT INTO users "
@@ -68,7 +72,9 @@ public final class UserRepository {
                 statement -> statement.setString(1, normalized));
     }
 
-    /** Updates editable profile and account state fields; returns false if no row matched. */
+    /**
+     * Updates editable profile and account state fields; returns false if no row matched.
+     */
     public boolean update(UserAccount account) {
         Objects.requireNonNull(account, "account");
         if (account.getId() == null) {

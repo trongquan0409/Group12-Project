@@ -17,7 +17,9 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
-/** Handles account storage, password verification, and in-memory sessions. */
+/**
+ * Handles account storage, password verification, and in-memory sessions.
+ */
 public final class AuthService {
     private static final int ITERATIONS = 210_000;
     private static final int HASH_BITS = 256;

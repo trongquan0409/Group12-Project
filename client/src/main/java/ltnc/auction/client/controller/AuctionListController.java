@@ -24,30 +24,48 @@ public class AuctionListController {
     private static final String SERVER_HOST = "localhost";
     private static final int SERVER_PORT = 5050;
 
-    @FXML private StackPane root;
-    @FXML private VBox authView;
-    @FXML private VBox registerView;
+    @FXML
+    private StackPane root;
+    @FXML
+    private VBox authView;
+    @FXML
+    private VBox registerView;
 
-    @FXML private Node adminView;
-    @FXML private Node sellerView;
-    @FXML private Node bidderView;
+    @FXML
+    private Node adminView;
+    @FXML
+    private Node sellerView;
+    @FXML
+    private Node bidderView;
 
-    @FXML private TextField loginUsername;
-    @FXML private TextField registerUsername;
-    @FXML private TextField auctionIdField;
-    @FXML private TextField amountField;
+    @FXML
+    private TextField loginUsername;
+    @FXML
+    private TextField registerUsername;
+    @FXML
+    private TextField auctionIdField;
+    @FXML
+    private TextField amountField;
 
-    @FXML private PasswordField loginPassword;
-    @FXML private PasswordField registerPassword;
+    @FXML
+    private PasswordField loginPassword;
+    @FXML
+    private PasswordField registerPassword;
 
-    @FXML private ChoiceBox<String> loginRole;
-    @FXML private ChoiceBox<String> registerRole;
+    @FXML
+    private ChoiceBox<String> loginRole;
+    @FXML
+    private ChoiceBox<String> registerRole;
 
-    @FXML private Label authMessage;
-    @FXML private Label registerMessage;
-    @FXML private Label statusLabel;
+    @FXML
+    private Label authMessage;
+    @FXML
+    private Label registerMessage;
+    @FXML
+    private Label statusLabel;
 
-    @FXML private ListView<String> auctionList;
+    @FXML
+    private ListView<String> auctionList;
 
     private String currentUsername;
     private String currentRole;
@@ -146,8 +164,8 @@ public class AuctionListController {
                 );
 
                 Platform.runLater(() -> {
-                    if (!response.success()) {
-                        authMessage.setText(response.message());
+                    if (!response.isSuccess()) {
+                        authMessage.setText(response.getMessage());
                         return;
                     }
 
@@ -309,8 +327,8 @@ public class AuctionListController {
                 Platform.runLater(() -> {
                     auctionList.getItems().clear();
 
-                    if (!response.success()) {
-                        statusLabel.setText(response.message());
+                    if (!response.isSuccess()) {
+                        statusLabel.setText(response.getMessage());
                         return;
                     }
 
@@ -404,10 +422,10 @@ public class AuctionListController {
                 );
 
                 Platform.runLater(() ->
-                        statusLabel.setText(response.message())
+                        statusLabel.setText(response.getMessage())
                 );
 
-                if (response.success()) {
+                if (response.isSuccess()) {
                     loadAuctions();
                 }
 

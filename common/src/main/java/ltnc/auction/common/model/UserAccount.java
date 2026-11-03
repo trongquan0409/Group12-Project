@@ -6,7 +6,9 @@ import java.time.Instant;
 import java.util.Locale;
 import java.util.Objects;
 
-/** Account profile shared by the auction client and server. */
+/**
+ * Account profile shared by the auction client and server.
+ */
 @SuppressWarnings("unused") // Public model API used by serialization and future account flows.
 public final class UserAccount implements Serializable {
     @Serial
@@ -34,16 +36,41 @@ public final class UserAccount implements Serializable {
         this.updatedAt = updatedAt == null ? this.createdAt : updatedAt;
     }
 
-    public Long getId() { return id; }
-    public String getUsername() { return username; }
-    public String getPasswordHash() { return passwordHash; }
-    public String getDisplayName() { return displayName; }
-    public UserRole getRole() { return role; }
-    public UserStatus getStatus() { return status; }
-    public Instant getCreatedAt() { return createdAt; }
-    public Instant getUpdatedAt() { return updatedAt; }
+    public Long getId() {
+        return id;
+    }
 
-    public boolean isActive() { return status == UserStatus.ACTIVE; }
+    public String getUsername() {
+        return username;
+    }
+
+    public String getPasswordHash() {
+        return passwordHash;
+    }
+
+    public String getDisplayName() {
+        return displayName;
+    }
+
+    public UserRole getRole() {
+        return role;
+    }
+
+    public UserStatus getStatus() {
+        return status;
+    }
+
+    public Instant getCreatedAt() {
+        return createdAt;
+    }
+
+    public Instant getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public boolean isActive() {
+        return status == UserStatus.ACTIVE;
+    }
 
     public void updateProfile(String displayName, UserRole role, UserStatus status) {
         this.displayName = requireText(displayName, "displayName", 100);

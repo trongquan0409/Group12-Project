@@ -1,10 +1,20 @@
 package ltnc.auction.common.factory;
-import ltnc.auction.common.model.*;
+
+import ltnc.auction.common.model.Art;
+import ltnc.auction.common.model.CreateItemRequest;
+import ltnc.auction.common.model.Electronics;
+import ltnc.auction.common.model.Item;
+import ltnc.auction.common.model.Vehicle;
+
 import java.time.Instant;
 
-public class DefaultItemFactory implements ItemFactory{
+public class DefaultItemFactory implements ItemFactory {
     @Override
     public Item createItem(CreateItemRequest request) {
+        if (request == null || request.type() == null) {
+            throw new IllegalArgumentException("Item request and type are required.");
+        }
+
         Long newId = null;
         Instant createdAt = null;
         Instant updatedAt = null;

@@ -12,4 +12,5 @@ public record CreateItemRequest(
         int year,
         int mileageKm,
         int plateNo
-) {}
+) {
+}

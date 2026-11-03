@@ -1,8 +1,9 @@
 package ltnc.auction.common.model;
+
 import java.time.Instant;
 import java.time.Year;
 
-public class Art extends Item{
+public class Art extends Item {
     private String artist;
     private int year;
 
@@ -11,19 +12,31 @@ public class Art extends Item{
         this.updateDetails(artist, year);
     }
 
-    public String getArtist() { return artist; }
-    public int getYear() { return year; }
+    public String getArtist() {
+        return artist;
+    }
+
+    public int getYear() {
+        return year;
+    }
 
     public void updateDetails(String artist, int year) {
-        if (artist == null || artist.isBlank()) throw new IllegalArgumentException("Illegal artist");
+        if (artist == null || artist.isBlank()) {
+            throw new IllegalArgumentException("Illegal artist");
+        }
         this.artist = artist;
-        if (year < 0 || year > Year.now().getValue()) throw new IllegalArgumentException("Illegal year");
+        if (year < 0 || year > Year.now().getValue()) {
+            throw new IllegalArgumentException("Illegal year");
+        }
         this.year = year;
         super.touch();
     }
 
     @Override
-    public ItemType getCategory() { return ItemType.ART; }
+    public ItemType getCategory() {
+        return ItemType.ART;
+    }
+
     @Override
     public String getInfo() {
         return String.format("[ART] %s - Artist: %s (%d)", getName(), artist, year);
