@@ -72,12 +72,12 @@ public final class ClientHandler implements Runnable {
  }
 
  private Response handle(Request request) {
-  if (request == null || request.type() == null) {
+  if (request.getType() == null) {
    return new Response(false, "Loại yêu cầu không hợp lệ", null);
   }
 
   try {
-   return switch (request.type()) {
+   return switch (request.getType()) {
 
     case PING ->
             new Response(true, "PONG", null);
@@ -94,7 +94,7 @@ public final class ClientHandler implements Runnable {
             );
 
     case LIST_BIDS -> {
-     var bids = manager.listBids(request.auctionId());
+     var bids = manager.listBids(request.getAuctionId());
 
      if (bids.isEmpty()) {
       yield new Response(
@@ -117,9 +117,9 @@ public final class ClientHandler implements Runnable {
 
     case PLACE_BID -> {
      Bid bid = manager.placeBid(
-             request.auctionId(),
-             request.username(),
-             request.amount()
+             request.getAuctionId(),
+             request.getUsername(),
+             request.getAmount()
      );
 
      yield new Response(
@@ -158,8 +158,8 @@ public final class ClientHandler implements Runnable {
 
  private Response handleLogin(Request request) {
   String role = authService.authenticate(
-          request.username(),
-          request.password()
+          request.getUsername(),
+          request.getPassword()
   );
 
   if (role == null) {
