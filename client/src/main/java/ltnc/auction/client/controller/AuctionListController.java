@@ -219,17 +219,50 @@ public class AuctionListController {
 
     @FXML
     private void register() {
-        if (registerUsername.getText().isBlank()
-                || registerPassword.getText().isBlank()) {
+        String username = registerUsername.getText().trim();
+        String password = registerPassword.getText();
+        String selectedRole = registerRole.getValue();
+
+        if (username.isBlank() || password.isBlank()) {
             registerMessage.setText(
                     "Vui lòng nhập đủ tên đăng nhập và mật khẩu."
             );
             return;
         }
 
-        registerMessage.setText(
-                "Chức năng đăng ký chưa được triển khai ở backend."
-        );
+        if (selectedRole == null) {
+            registerMessage.setText("Vui lòng chọn vai trò.");
+            return;
+        }
+
+        String role = selectedRole.equals("Người bán") ? "SELLER" : "BIDDER";
+        registerMessage.setText("Đang tạo tài khoản...");
+
+        Thread worker = new Thread(() -> {
+            try (AuctionSocketClient client =
+                         new AuctionSocketClient(SERVER_HOST, SERVER_PORT)) {
+                Response response = client.send(new Request(
+                        RequestType.REGISTER, username, password,
+                        null, null, role));
+
+                Platform.runLater(() -> {
+                    registerMessage.setText(response.getMessage());
+                    if (response.isSuccess()) {
+                        loginUsername.setText(username);
+                        loginPassword.clear();
+                        registerPassword.clear();
+                        showLogin();
+                        authMessage.setText(
+                                "Tạo tài khoản thành công. Vui lòng đăng nhập.");
+                    }
+                });
+            } catch (Exception exception) {
+                Platform.runLater(() -> registerMessage.setText(
+                        "Không kết nối được server. Hãy thử lại sau."));
+            }
+        }, "register-worker");
+        worker.setDaemon(true);
+        worker.start();
     }
 
     @FXML

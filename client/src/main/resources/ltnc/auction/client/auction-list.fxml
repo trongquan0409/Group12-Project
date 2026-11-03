@@ -17,7 +17,7 @@
             <Button text="Tạo tài khoản người bán / người đấu giá" onAction="#showRegister" styleClass="link-button" maxWidth="Infinity" />
             <Label fx:id="authMessage" wrapText="true" styleClass="muted" />
         </VBox>
-        <Label text="Đăng nhập và đăng ký sẽ kết nối backend sau khi API sẵn sàng." styleClass="muted" />
+        <Label text="Đăng nhập và đăng ký tài khoản qua server." styleClass="muted" />
     </VBox>
 
     <VBox fx:id="registerView" visible="false" managed="false" alignment="CENTER" spacing="18" styleClass="auth-wrap">
@@ -27,7 +27,7 @@
             <TextField fx:id="registerUsername" promptText="Tên đăng nhập" />
             <PasswordField fx:id="registerPassword" promptText="Mật khẩu" />
             <ChoiceBox fx:id="registerRole" maxWidth="Infinity" />
-            <Button text="Tạo tài khoản (bản mẫu)" onAction="#register" styleClass="primary-button" maxWidth="Infinity" />
+            <Button text="Tạo tài khoản" onAction="#register" styleClass="primary-button" maxWidth="Infinity" />
             <Button text="Quay lại đăng nhập" onAction="#showLogin" styleClass="link-button" maxWidth="Infinity" />
             <Label fx:id="registerMessage" wrapText="true" styleClass="muted" />
         </VBox>

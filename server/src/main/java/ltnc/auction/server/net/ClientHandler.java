@@ -84,6 +84,8 @@ public final class ClientHandler implements Runnable {
 
     case LOGIN -> handleLogin(request);
 
+    case REGISTER -> handleRegister(request);
+
     case LIST_AUCTIONS ->
             new Response(
                     true,
@@ -138,6 +140,9 @@ public final class ClientHandler implements Runnable {
   } catch (InvalidBidException | AuctionClosedException exception) {
    return new Response(false, exception.getMessage(), null);
 
+  } catch (IllegalArgumentException exception) {
+   return new Response(false, exception.getMessage(), null);
+
   } catch (Exception exception) {
    System.err.println(
            "Lỗi nghiệp vụ: " + exception.getMessage()
@@ -171,5 +176,14 @@ public final class ClientHandler implements Runnable {
           null,
           role
   );
+ }
+
+ private Response handleRegister(Request request) {
+  String role = authService.register(
+          request.getUsername(),
+          request.getPassword(),
+          request.getRole()
+  );
+  return new Response(true, "Đăng ký tài khoản thành công.", null, role);
  }
 }

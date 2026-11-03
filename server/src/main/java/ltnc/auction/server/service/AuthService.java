@@ -65,7 +65,8 @@ public final class AuthService {
         byte[] salt = new byte[16];
         RANDOM.nextBytes(salt);
         String saltText = Base64.getEncoder().encodeToString(salt);
-        accounts.put(name, new Account(saltText, hash(password, salt), role));
+        String passwordHash = Base64.getEncoder().encodeToString(hash(password, salt));
+        accounts.put(name, new Account(saltText, passwordHash, role));
         save();
         return role;
     }
@@ -78,8 +79,7 @@ public final class AuthService {
         if (account == null) {
             return null;
         }
-        byte[] actual = Base64.getDecoder().decode(hash(password,
-                Base64.getDecoder().decode(account.salt())));
+        byte[] actual = hash(password, Base64.getDecoder().decode(account.salt()));
         byte[] expected = Base64.getDecoder().decode(account.passwordHash());
         return MessageDigest.isEqual(actual, expected) ? account.role() : null;
     }
@@ -172,6 +172,6 @@ public final class AuthService {
         byte[] salt = new byte[16];
         RANDOM.nextBytes(salt);
         accounts.put(username, new Account(Base64.getEncoder().encodeToString(salt),
-                hash(password, salt), role));
+                Base64.getEncoder().encodeToString(hash(password, salt)), role));
     }
 }
