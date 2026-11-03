@@ -92,21 +92,25 @@ public final class ClientHandler implements Runnable {
                 );
 
                 case LIST_BIDS -> {
-                    var bids = manager.listBids(request.getAuctionId());
+                    String auctionId = request.getAuctionId();
 
-                    if (bids.isEmpty()) {
+                    if (manager.getAuction(auctionId) == null) {
                         yield new Response(
-                                true,
-                                "Phiên đấu giá chưa có lượt đặt giá.",
+                                false,
+                                "Không tìm thấy phiên đấu giá.",
                                 null,
                                 null,
-                                bids
+                                null
                         );
                     }
 
+                    var bids = manager.listBids(auctionId);
+
                     yield new Response(
                             true,
-                            "Đã tải lịch sử đặt giá.",
+                            bids.isEmpty()
+                                    ? "Phiên đấu giá chưa có lượt đặt giá."
+                                    : "Đã tải lịch sử đặt giá.",
                             null,
                             null,
                             bids
