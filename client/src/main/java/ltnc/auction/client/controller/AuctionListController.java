@@ -146,15 +146,14 @@ public class AuctionListController {
                 );
 
                 Platform.runLater(() -> {
-                    if (!response.isSuccess()) {
-                        authMessage.setText(response.getMessage());
+                    if (!response.success()) {
+                        authMessage.setText(response.message());
                         return;
                     }
 
-                    String authenticatedRole = response.getRole();
+                    String authenticatedRole = response.role();
 
-                    if (authenticatedRole == null
-                            || !expectedRole.equals(authenticatedRole)) {
+                    if (!expectedRole.equals(authenticatedRole)) {
                         authMessage.setText(
                                 "Tài khoản không thuộc vai trò đã chọn."
                         );
@@ -277,12 +276,12 @@ public class AuctionListController {
                 Platform.runLater(() -> {
                     auctionList.getItems().clear();
 
-                    if (!response.isSuccess()) {
-                        statusLabel.setText(response.getMessage());
+                    if (!response.success()) {
+                        statusLabel.setText(response.message());
                         return;
                     }
 
-                    for (Auction auction : response.getAuctions()) {
+                    for (Auction auction : response.auctions()) {
                         auctionList.getItems().add(
                                 auction.getId()
                                         + " | "
@@ -372,10 +371,10 @@ public class AuctionListController {
                 );
 
                 Platform.runLater(() ->
-                        statusLabel.setText(response.getMessage())
+                        statusLabel.setText(response.message())
                 );
 
-                if (response.isSuccess()) {
+                if (response.success()) {
                     loadAuctions();
                 }
 

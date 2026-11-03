@@ -9,7 +9,6 @@ import ltnc.auction.common.exception.AuctionClosedException;
 import ltnc.auction.common.exception.InvalidBidException;
 import ltnc.auction.common.model.Bid;
 import ltnc.auction.common.protocol.Request;
-import ltnc.auction.common.protocol.RequestType;
 import ltnc.auction.common.protocol.Response;
 import ltnc.auction.server.service.AuctionManager;
 import ltnc.auction.server.service.AuthService;
@@ -73,12 +72,12 @@ public final class ClientHandler implements Runnable {
  }
 
  private Response handle(Request request) {
-  if (request == null || request.getType() == null) {
+  if (request == null || request.type() == null) {
    return new Response(false, "Loại yêu cầu không hợp lệ", null);
   }
 
   try {
-   return switch (request.getType()) {
+   return switch (request.type()) {
 
     case PING ->
             new Response(true, "PONG", null);
@@ -93,7 +92,7 @@ public final class ClientHandler implements Runnable {
             );
 
     case LIST_BIDS -> {
-     var bids = manager.listBids(request.getAuctionId());
+     var bids = manager.listBids(request.auctionId());
 
      if (bids.isEmpty()) {
       yield new Response(
@@ -116,14 +115,14 @@ public final class ClientHandler implements Runnable {
 
     case PLACE_BID -> {
      Bid bid = manager.placeBid(
-             request.getAuctionId(),
-             request.getUsername(),
-             request.getAmount()
+             request.auctionId(),
+             request.username(),
+             request.amount()
      );
 
      yield new Response(
              true,
-             "Đặt giá thành công: " + bid.getAmount() + "!",
+             "Đặt giá thành công: " + bid.amount() + "!",
              null
      );
     }
@@ -154,8 +153,8 @@ public final class ClientHandler implements Runnable {
 
  private Response handleLogin(Request request) {
   String role = authService.authenticate(
-          request.getUsername(),
-          request.getPassword()
+          request.username(),
+          request.password()
   );
 
   if (role == null) {

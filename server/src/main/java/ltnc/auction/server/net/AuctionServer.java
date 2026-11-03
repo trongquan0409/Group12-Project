@@ -23,7 +23,7 @@ public final class AuctionServer {
     private AuctionServer() {
     }
 
-    public static void main(String[] args) {
+    static void main(String[] args) {
         int port = Integer.parseInt(
                 System.getenv().getOrDefault(
                         "AUCTION_PORT",
@@ -98,11 +98,14 @@ public final class AuctionServer {
         Instant now = Instant.now();
 
         Art sampleArt = new Art(
-                "item-1",
+                null,
+                now,
+                now,
                 "Tranh nghệ thuật mẫu",
                 "Sản phẩm mẫu dùng để kiểm thử chức năng đấu giá",
-                "seller",
-                new BigDecimal("100000")
+                1L,
+                "Họa sĩ mẫu",
+                2025
         );
 
         Auction sampleAuction = new Auction(

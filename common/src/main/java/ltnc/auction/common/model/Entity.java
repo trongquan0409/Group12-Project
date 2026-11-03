@@ -2,8 +2,8 @@ package ltnc.auction.common.model;
 import java.time.Instant;
 
 public class Entity {
-    private Long id;
-    private Instant createdAt;
+    private final Long id;
+    private final Instant createdAt;
     private Instant updatedAt;
 
     protected Entity(Long id, Instant createdAt, Instant updatedAt) {
