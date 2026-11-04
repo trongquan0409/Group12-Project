@@ -103,12 +103,20 @@
                 <HBox spacing="14">
                     <VBox styleClass="card form-card" spacing="10">
                         <Label text="Đăng sản phẩm / tạo phiên" styleClass="section-title"/>
-                        <TextField promptText="Tên sản phẩm"/>
-                        <TextArea promptText="Mô tả sản phẩm" prefRowCount="3"/>
-                        <TextField promptText="Giá khởi điểm (VNĐ)"/>
-                        <TextField promptText="Bước nhảy tối thiểu (VNĐ)"/>
-                        <DatePicker promptText="Ngày kết thúc"/>
-                        <Button text="Tạo phiên" onAction="#showPrototypeMessage" styleClass="primary-button"/>
+                        <TextField fx:id="sellerItemName" promptText="Tên sản phẩm"/>
+                        <TextArea fx:id="sellerItemDescription" promptText="Mô tả sản phẩm" prefRowCount="3"/>
+                        <ChoiceBox fx:id="sellerItemType" maxWidth="Infinity"/>
+                        <TextField fx:id="sellerBrand" promptText="Thương hiệu (Điện tử)"/>
+                        <TextField fx:id="sellerWarranty" promptText="Bảo hành tháng (Điện tử)"/>
+                        <TextField fx:id="sellerArtist" promptText="Tác giả (Nghệ thuật)"/>
+                        <TextField fx:id="sellerYear" promptText="Năm sáng tác (Nghệ thuật)"/>
+                        <TextField fx:id="sellerMileage" promptText="Số km đã đi (Phương tiện)"/>
+                        <TextField fx:id="sellerPlateNo" promptText="Biển số dạng số (Phương tiện)"/>
+                        <TextField fx:id="sellerStartingPrice" promptText="Giá khởi điểm (VNĐ)"/>
+                        <TextField fx:id="sellerIncrement" promptText="Bước nhảy tối thiểu (VNĐ)"/>
+                        <DatePicker fx:id="sellerEndDate" promptText="Ngày kết thúc"/>
+                        <Button text="Tạo phiên" onAction="#createAuction" styleClass="primary-button"/>
+                        <Label fx:id="sellerMessage" wrapText="true" styleClass="notice"/>
                     </VBox>
                     <VBox styleClass="card" spacing="10">
                         <Label text="Phiên của tôi" styleClass="section-title"/>
