@@ -18,6 +18,10 @@ import ltnc.auction.common.exception.InvalidBidException;
 import ltnc.auction.common.model.Auction;
 import ltnc.auction.common.model.AuctionStatus;
 import ltnc.auction.common.model.Bid;
+import ltnc.auction.common.model.CreateItemRequest;
+import ltnc.auction.common.model.Item;
+import ltnc.auction.common.factory.DefaultItemFactory;
+import ltnc.auction.common.factory.ItemFactory;
 import ltnc.auction.server.observer.AuctionObserver;
 import ltnc.auction.server.persistence.AuctionStore;
 
@@ -32,6 +36,7 @@ public final class AuctionManager {
             new CopyOnWriteArrayList<>();
 
     private AuctionStore store;
+    private final ItemFactory itemFactory = new DefaultItemFactory();
 
     private AuctionManager() {
     }
@@ -71,6 +76,46 @@ public final class AuctionManager {
         locks.put(auction.getId(), new ReentrantLock());
 
         save();
+    }
+
+    public synchronized Auction createAuction(
+            String sellerUsername,
+            CreateItemRequest request,
+            BigDecimal startingPrice,
+            BigDecimal increment,
+            Instant endAt
+    ) {
+        if (sellerUsername == null || sellerUsername.isBlank()) {
+            throw new IllegalArgumentException("Thiếu thông tin người bán");
+        }
+        if (request == null) {
+            throw new IllegalArgumentException("Thiếu thông tin sản phẩm");
+        }
+        if (startingPrice == null || startingPrice.signum() < 0) {
+            throw new IllegalArgumentException("Giá khởi điểm không hợp lệ");
+        }
+        if (increment == null || increment.signum() <= 0) {
+            throw new IllegalArgumentException("Bước giá phải lớn hơn 0");
+        }
+        if (endAt == null || !endAt.isAfter(Instant.now())) {
+            throw new IllegalArgumentException("Thời gian kết thúc phải ở tương lai");
+        }
+
+        long sellerId = Math.max(1L, (long) sellerUsername.hashCode() & 0x7fffffffL);
+        CreateItemRequest normalized = new CreateItemRequest(
+                request.name(), request.description(), sellerId, request.type(),
+                request.brand(), request.warranty(), request.artist(), request.year(),
+                request.mileageKm(), request.plateNo()
+        );
+
+        Item item = itemFactory.createItem(normalized);
+        Instant now = Instant.now();
+        Auction auction = new Auction(
+                UUID.randomUUID().toString(), item, startingPrice, increment, now, endAt
+        );
+
+        addAuction(auction);
+        return auction;
     }
 
     // Get all auctions
