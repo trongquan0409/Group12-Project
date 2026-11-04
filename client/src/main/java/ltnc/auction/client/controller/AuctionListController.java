@@ -4,6 +4,8 @@ package ltnc.auction.client.controller;
 import java.math.BigDecimal;
 import java.text.NumberFormat;
 import java.time.ZoneId;
+import java.time.LocalDate;
+import java.time.Instant;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Locale;
@@ -16,6 +18,8 @@ import javafx.beans.property.ReadOnlyStringWrapper;
 import javafx.fxml.FXML;
 import javafx.scene.Node;
 import javafx.scene.control.ChoiceBox;
+import javafx.scene.control.DatePicker;
+import javafx.scene.control.TextArea;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
 import javafx.scene.control.PasswordField;
@@ -29,6 +33,8 @@ import javafx.util.Duration;
 import ltnc.auction.client.net.AuctionSocketClient;
 import ltnc.auction.common.model.Auction;
 import ltnc.auction.common.model.Bid;
+import ltnc.auction.common.model.CreateItemRequest;
+import ltnc.auction.common.model.ItemType;
 import ltnc.auction.common.protocol.Request;
 import ltnc.auction.common.protocol.RequestType;
 import ltnc.auction.common.protocol.Response;
@@ -74,6 +80,46 @@ public class AuctionListController {
 
     @FXML
     private TextField amountField;
+
+    @FXML
+    private TextField sellerItemName;
+
+    @FXML
+    private TextArea sellerItemDescription;
+
+    @FXML
+    private ChoiceBox<String> sellerItemType;
+
+    @FXML
+    private TextField sellerBrand;
+
+    @FXML
+    private TextField sellerWarranty;
+
+    @FXML
+    private TextField sellerArtist;
+
+    @FXML
+    private TextField sellerYear;
+
+    @FXML
+    private TextField sellerMileage;
+
+    @FXML
+    private TextField sellerPlateNo;
+
+    @FXML
+    private TextField sellerStartingPrice;
+
+    @FXML
+    private TextField sellerIncrement;
+
+    @FXML
+    private DatePicker sellerEndDate;
+
+    @FXML
+    private Label sellerMessage;
+
 
     @FXML
     private PasswordField loginPassword;
@@ -144,6 +190,9 @@ public class AuctionListController {
         );
 
         registerRole.setValue("Người đấu giá");
+
+        sellerItemType.getItems().setAll("Điện tử", "Nghệ thuật", "Phương tiện");
+        sellerItemType.setValue("Điện tử");
 
         // Cấu hình các cột trong bảng lịch sử đấu giá
         bidderColumn.setCellValueFactory(cell ->
@@ -457,6 +506,129 @@ public class AuctionListController {
 
         authMessage.setText("Bạn đã đăng xuất.");
         statusLabel.setText("");
+    }
+
+    @FXML
+    private void createAuction() {
+        if (!"SELLER".equals(currentRole) || currentUsername == null) {
+            sellerMessage.setText("Vui lòng đăng nhập bằng tài khoản Người bán.");
+            return;
+        }
+
+        String name = sellerItemName.getText().trim();
+        String description = sellerItemDescription.getText().trim();
+        LocalDate endDate = sellerEndDate.getValue();
+        if (name.isBlank() || endDate == null) {
+            sellerMessage.setText("Vui lòng nhập tên sản phẩm và ngày kết thúc.");
+            return;
+        }
+
+        BigDecimal startingPrice;
+        BigDecimal increment;
+        try {
+            startingPrice = new BigDecimal(sellerStartingPrice.getText().trim());
+            increment = new BigDecimal(sellerIncrement.getText().trim());
+            if (startingPrice.signum() < 0 || increment.signum() <= 0) {
+                throw new NumberFormatException();
+            }
+        } catch (NumberFormatException exception) {
+            sellerMessage.setText("Giá khởi điểm và bước giá không hợp lệ.");
+            return;
+        }
+
+        ItemType type;
+        String brand = sellerBrand.getText().trim();
+        String artist = sellerArtist.getText().trim();
+        int warranty;
+        int year;
+        int mileage;
+        int plateNo;
+        try {
+            warranty = parseNonNegative(sellerWarranty.getText(), "Bảo hành");
+            year = parseNonNegative(sellerYear.getText(), "Năm sáng tác");
+            mileage = parseNonNegative(sellerMileage.getText(), "Số km");
+            plateNo = parseNonNegative(sellerPlateNo.getText(), "Biển số");
+            type = switch (sellerItemType.getValue()) {
+                case "Nghệ thuật" -> ItemType.ART;
+                case "Phương tiện" -> ItemType.VEHICLE;
+                default -> ItemType.ELECTRONICS;
+            };
+            if (type == ItemType.ELECTRONICS && brand.isBlank()) {
+                throw new IllegalArgumentException("Vui lòng nhập thương hiệu.");
+            }
+            if (type == ItemType.ART && artist.isBlank()) {
+                throw new IllegalArgumentException("Vui lòng nhập tên nghệ sĩ/tác giả.");
+            }
+        } catch (IllegalArgumentException exception) {
+            sellerMessage.setText(exception.getMessage());
+            return;
+        }
+
+        Instant endAt = endDate.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant().minusSeconds(1);
+        CreateItemRequest itemRequest = new CreateItemRequest(
+                name, description, 1L, type, brand, warranty, artist, year, mileage, plateNo);
+        sellerMessage.setText("Đang tạo phiên đấu giá...");
+
+        Thread worker = new Thread(() -> {
+            try (AuctionSocketClient client = new AuctionSocketClient(SERVER_HOST, SERVER_PORT)) {
+                Response response = client.send(new Request(
+                        RequestType.CREATE_AUCTION, currentUsername, itemRequest,
+                        startingPrice, increment, endAt));
+                Platform.runLater(() -> {
+                    sellerMessage.setText(response.getMessage());
+                    if (response.isSuccess()) {
+                        clearSellerForm();
+                    }
+                });
+            } catch (Exception exception) {
+                exception.printStackTrace();
+
+                String message = exception.getMessage();
+
+                if (message == null || message.isBlank()) {
+                    message = exception.getClass().getSimpleName();
+                }
+                final String finalMessage = message;
+                Platform.runLater(() ->
+                        statusLabel.setText(
+                                "Không thể tạo phiên: " + finalMessage
+                        )
+                );
+            }
+        }, "create-auction-worker");
+        worker.setDaemon(true);
+        worker.start();
+    }
+
+    private int parseNonNegative(String text, String fieldName) {
+        String value = text == null ? "" : text.trim();
+        if (value.isEmpty()) {
+            return 0;
+        }
+        try {
+            int number = Integer.parseInt(value);
+            if (number < 0) {
+                throw new NumberFormatException();
+            }
+            return number;
+        } catch (NumberFormatException exception) {
+            throw new IllegalArgumentException(fieldName + " phải là số nguyên không âm.");
+        }
+    }
+
+    private void clearSellerForm() {
+        sellerItemName.clear();
+        sellerItemDescription.clear();
+        sellerBrand.clear();
+        sellerWarranty.clear();
+        sellerArtist.clear();
+        sellerYear.clear();
+        sellerMileage.clear();
+        sellerPlateNo.clear();
+        sellerStartingPrice.clear();
+        sellerIncrement.clear();
+        sellerEndDate.setValue(null);
+        sellerItemType.setValue("Điện tử");
     }
 
     @FXML
