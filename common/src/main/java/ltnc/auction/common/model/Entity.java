@@ -3,7 +3,7 @@ package ltnc.auction.common.model;
 import java.time.Instant;
 import java.io.Serializable;
 
-public class Entity implements Serializable {
+public abstract class Entity implements Serializable {
     private static final long serialVersionUID = 1L;
     private final Long id;
     private final Instant createdAt;
