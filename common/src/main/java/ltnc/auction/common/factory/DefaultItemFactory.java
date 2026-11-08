@@ -1,7 +1,7 @@
 package ltnc.auction.common.factory;
 
 import ltnc.auction.common.model.Art;
-import ltnc.auction.common.model.CreateItemRequest;
+import ltnc.auction.common.protocol.CreateItemRequest;
 import ltnc.auction.common.model.Electronics;
 import ltnc.auction.common.model.Item;
 import ltnc.auction.common.model.Vehicle;
@@ -24,7 +24,7 @@ public class DefaultItemFactory implements ItemFactory {
                 yield new Electronics(
                         newId, createdAt, updatedAt,
                         request.name(), request.description(), request.sellerId(),
-                        request.brand(), request.warranty());
+                        request.brand(), request.warrantyMonths());
             }
             case ART -> {
                 yield new Art(

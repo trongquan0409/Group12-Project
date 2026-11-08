@@ -1,4 +1,6 @@
-package ltnc.auction.common.model;
+package ltnc.auction.common.protocol;
+
+import ltnc.auction.common.model.ItemType;
 
 public record CreateItemRequest(
         String name,
@@ -7,7 +9,7 @@ public record CreateItemRequest(
         ItemType type,
 
         String brand,
-        int warranty,
+        int warrantyMonths,
         String artist,
         int year,
         int mileageKm,
