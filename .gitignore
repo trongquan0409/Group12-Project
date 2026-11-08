@@ -1,0 +1,20 @@
+
+# Maven build output
+**/target/
+
+# Java compiled files
+*.class
+
+# Runtime serialized data
+*.ser
+
+# Logs
+*.log
+
+# IntelliJ local files
+.idea/
+*.iml
+
+# Operating system
+.DS_Store
+Thumbs.db
