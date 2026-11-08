@@ -1,11 +1,10 @@
-package ltnc.auction.common;
+package ltnc.auction.common.factory;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import org.junit.jupiter.api.Test;
-import ltnc.auction.common.factory.DefaultItemFactory;
 import ltnc.auction.common.model.Art;
 import ltnc.auction.common.protocol.CreateItemRequest;
 import ltnc.auction.common.model.ItemType;
