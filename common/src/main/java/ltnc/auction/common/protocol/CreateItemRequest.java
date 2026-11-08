@@ -13,6 +13,6 @@ public record CreateItemRequest(
         String artist,
         int year,
         int mileageKm,
-        int plateNo
+        String plateNo
 ) {
 }
