@@ -15,11 +15,11 @@ class ItemFactoryTest {
     void createsArtItem() {
         var factory = new DefaultItemFactory();
         var request = new CreateItemRequest(
-                "Painting", "desc", 1L, ItemType.ART,
-                null, 0, "Sample artist", 2025, 0, 0
+                "Painting", "desc", ItemType.ART,
+                null, null, "Sample artist", 2025, null, null
         );
 
-        var item = factory.createItem(request);
+        var item = factory.createItem(1L, request);
 
         assertInstanceOf(Art.class, item);
         assertEquals(ItemType.ART, item.getCategory());
@@ -29,11 +29,11 @@ class ItemFactoryTest {
     void rejectsMissingCategory() {
         var factory = new DefaultItemFactory();
         var request = new CreateItemRequest(
-                "Painting", "desc", 1L, null,
-                null, 0, "Sample artist", 2025, 0, 0
+                "Painting", "desc", null,
+                null, null, "Sample artist", 2025, null, null
         );
 
         assertThrows(IllegalArgumentException.class,
-                () -> factory.createItem(request));
+                () -> factory.createItem(1L, request));
     }
 }

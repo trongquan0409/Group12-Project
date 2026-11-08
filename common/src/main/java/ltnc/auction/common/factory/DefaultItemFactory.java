@@ -7,6 +7,7 @@ import ltnc.auction.common.model.Item;
 import ltnc.auction.common.model.Vehicle;
 import ltnc.auction.common.protocol.CreateItemRequest;
 
+
 /**
  * Default {@link ItemFactory} that picks the item class from the type given in the request.
  *
@@ -23,7 +24,9 @@ public class DefaultItemFactory implements ItemFactory {
     @Override
     public Item createItem(long sellerId, CreateItemRequest request) {
         Objects.requireNonNull(request, "request must not be null");
-        Objects.requireNonNull(request.type(), "type must not be null");
+        if (request.type() == null) {
+            throw new IllegalArgumentException("type must not be null");
+        }
 
         return switch (request.type()) {
             case ELECTRONICS -> new Electronics(
