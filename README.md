@@ -69,7 +69,8 @@ Mở terminal tại thư mục gốc của repository.
 mvn clean test
 ```
 
-Checkstyle được chạy tự động ở bước `validate` khi build Maven, bao gồm cả mã nguồn chính và mã kiểm thử. Có thể chạy riêng bằng:
+Checkstyle được chạy tự động ở bước `validate` khi build Maven, bao gồm cả mã nguồn chính và mã kiểm thử. Có thể chạy
+riêng bằng:
 
 ```bash
 mvn checkstyle:check
@@ -94,7 +95,8 @@ Mở terminal khác và chạy:
 mvn -pl client -am compile javafx:run
 ```
 
-> Plugin `exec` và `javafx` được khai báo ở `pom.xml` gốc với `skip=true` để Maven nhận ra prefix `exec:`/`javafx:` ở mọi
+> Plugin `exec` và `javafx` được khai báo ở `pom.xml` gốc với `skip=true` để Maven nhận ra prefix `exec:`/`javafx:` ở
+> mọi
 > module khi dùng `-am`; chỉ `server` (exec) và `client` (javafx) bật lại plugin tương ứng.
 
 Server mặc định lắng nghe tại cổng `5050`. Đường dẫn lưu dữ liệu mặc định là `server/data/auction-data.ser`.
