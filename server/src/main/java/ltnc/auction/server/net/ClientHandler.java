@@ -4,9 +4,11 @@ import java.io.EOFException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
+import java.util.List;
 
 import ltnc.auction.common.exception.AuctionClosedException;
 import ltnc.auction.common.exception.InvalidBidException;
+import ltnc.auction.common.model.Auction;
 import ltnc.auction.common.model.Bid;
 import ltnc.auction.common.protocol.Request;
 import ltnc.auction.common.protocol.Response;
@@ -133,11 +135,7 @@ public final class ClientHandler implements Runnable {
                     );
                 }
 
-                case CREATE_AUCTION -> new Response(
-                        false,
-                        "Chức năng tạo phiên đấu giá chưa được triển khai!",
-                        null
-                );
+                case CREATE_AUCTION -> handleCreateAuction(request);
             };
 
         } catch (InvalidBidException | AuctionClosedException exception) {
@@ -157,6 +155,24 @@ public final class ClientHandler implements Runnable {
                     null
             );
         }
+    }
+
+    private Response handleCreateAuction(Request request) {
+        if (request.getUsername() == null || request.getUsername().isBlank()) {
+            return new Response(false, "Thiếu thông tin người bán.", null);
+        }
+        Auction auction = manager.createAuction(
+                request.getUsername(),
+                request.getItemRequest(),
+                request.getStartingPrice(),
+                request.getIncrement(),
+                request.getEndAt()
+        );
+        return new Response(
+                true,
+                "Tạo phiên đấu giá thành công. Mã phiên: " + auction.getId(),
+                List.of(auction)
+        );
     }
 
     private Response handleLogin(Request request) {
