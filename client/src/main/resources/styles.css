@@ -81,6 +81,19 @@
     -fx-alignment: CENTER_LEFT;
     -fx-padding: 10px;
     -fx-max-width: Infinity;
+    -fx-background-radius: 7px;
+    -fx-text-fill: #344563;
+    -fx-cursor: hand;
+}
+
+.nav-item:hover {
+    -fx-background-color: #eef3fb;
+}
+
+.nav-item.nav-item-active {
+    -fx-background-color: #e3ecf9;
+    -fx-text-fill: #245ca6;
+    -fx-font-weight: bold;
 }
 
 .eyebrow {
@@ -125,4 +138,44 @@
     -fx-background-color: #f1f5fb;
     -fx-padding: 10px;
     -fx-background-radius: 6px;
+}
+
+.detail-title {
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #182b49;
+}
+
+.detail-label {
+    -fx-font-weight: bold;
+    -fx-text-fill: #5e6c84;
+}
+
+.detail-value {
+    -fx-text-fill: #172b4d;
+}
+
+.detail-highlight {
+    -fx-font-weight: bold;
+    -fx-text-fill: #245ca6;
+    -fx-font-size: 14px;
+}
+
+.detail-countdown {
+    -fx-font-weight: bold;
+    -fx-text-fill: #d9381e;
+}
+
+.badge {
+    -fx-background-color: #ebecf0;
+    -fx-padding: 3px 8px;
+    -fx-background-radius: 4px;
+    -fx-text-fill: #42526e;
+    -fx-font-size: 11px;
+}
+
+.detail-scroll {
+    -fx-background-color: transparent;
+    -fx-background: transparent;
+    -fx-border-color: transparent;
 }
