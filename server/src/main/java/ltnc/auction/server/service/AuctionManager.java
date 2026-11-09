@@ -102,6 +102,14 @@ public final class AuctionManager {
         }
 
         Item item = itemFactory.createItem(sellerIdOf(sellerUsername), request);
+        long sellerId = Math.max(1L, (long) sellerUsername.hashCode() & 0x7fffffffL);
+        CreateItemRequest normalized = new CreateItemRequest(
+                request.name(), request.description(), request.type(),
+                request.brand(), request.warrantyMonths(), request.artist(), request.year(),
+                request.mileageKm(), request.plateNo()
+        );
+
+        Item item = itemFactory.createItem(sellerId, normalized);
         Instant now = Instant.now();
         Auction auction = new Auction(
                 UUID.randomUUID().toString(), item, startingPrice, increment, now, endAt
