@@ -12,8 +12,7 @@
             <Label text="Đăng nhập" styleClass="section-title"/>
             <TextField fx:id="loginUsername" promptText="Tên đăng nhập"/>
             <PasswordField fx:id="loginPassword" promptText="Mật khẩu"/>
-            <ChoiceBox fx:id="loginRole" maxWidth="Infinity"/>
-            <Button text="Đăng nhập (bản mẫu)" onAction="#signIn" styleClass="primary-button" maxWidth="Infinity"/>
+            <Button text="Đăng nhập" onAction="#signIn" styleClass="primary-button" maxWidth="Infinity"/>
             <Button text="Tạo tài khoản người bán / người đấu giá" onAction="#showRegister" styleClass="link-button"
                     maxWidth="Infinity"/>
             <Label fx:id="authMessage" wrapText="true" styleClass="muted"/>
