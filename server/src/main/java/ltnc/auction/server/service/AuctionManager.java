@@ -18,7 +18,7 @@ import ltnc.auction.common.exception.InvalidBidException;
 import ltnc.auction.common.model.Auction;
 import ltnc.auction.common.model.AuctionStatus;
 import ltnc.auction.common.model.Bid;
-import ltnc.auction.common.model.CreateItemRequest;
+import ltnc.auction.common.protocol.CreateItemRequest;
 import ltnc.auction.common.model.Item;
 import ltnc.auction.common.factory.DefaultItemFactory;
 import ltnc.auction.common.factory.ItemFactory;
@@ -101,14 +101,7 @@ public final class AuctionManager {
             throw new IllegalArgumentException("Thời gian kết thúc phải ở tương lai");
         }
 
-        long sellerId = Math.max(1L, (long) sellerUsername.hashCode() & 0x7fffffffL);
-        CreateItemRequest normalized = new CreateItemRequest(
-                request.name(), request.description(), sellerId, request.type(),
-                request.brand(), request.warranty(), request.artist(), request.year(),
-                request.mileageKm(), request.plateNo()
-        );
-
-        Item item = itemFactory.createItem(normalized);
+        Item item = itemFactory.createItem(sellerIdOf(sellerUsername), request);
         Instant now = Instant.now();
         Auction auction = new Auction(
                 UUID.randomUUID().toString(), item, startingPrice, increment, now, endAt
@@ -122,6 +115,24 @@ public final class AuctionManager {
     public synchronized List<Auction> listAuctions() {
         refreshStatuses();
         return List.copyOf(auctions.values());
+    }
+
+    // Get all auctions created by one seller
+    public synchronized List<Auction> listAuctionsBySeller(String sellerUsername) {
+        if (sellerUsername == null || sellerUsername.isBlank()) {
+            return List.of();
+        }
+        refreshStatuses();
+        long sellerId = sellerIdOf(sellerUsername);
+        return auctions.values().stream()
+                .filter(auction -> auction.getItem() != null
+                        && auction.getItem().getSellerId() == sellerId)
+                .toList();
+    }
+
+    // Map a seller username to the id stored in Item.sellerId
+    private static long sellerIdOf(String sellerUsername) {
+        return Math.max(1L, (long) sellerUsername.hashCode() & 0x7fffffffL);
     }
 
     // Get one auction by ID

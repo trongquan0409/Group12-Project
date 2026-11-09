@@ -7,6 +7,7 @@ import java.time.ZoneId;
 import java.time.LocalDate;
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -17,6 +18,7 @@ import javafx.application.Platform;
 import javafx.beans.property.ReadOnlyStringWrapper;
 import javafx.fxml.FXML;
 import javafx.scene.Node;
+import javafx.scene.control.Button;
 import javafx.scene.control.ChoiceBox;
 import javafx.scene.control.DatePicker;
 import javafx.scene.control.TextArea;
@@ -32,8 +34,9 @@ import javafx.util.Duration;
 
 import ltnc.auction.client.net.AuctionSocketClient;
 import ltnc.auction.common.model.Auction;
+import ltnc.auction.common.model.AuctionStatus;
 import ltnc.auction.common.model.Bid;
-import ltnc.auction.common.model.CreateItemRequest;
+import ltnc.auction.common.protocol.CreateItemRequest;
 import ltnc.auction.common.model.ItemType;
 import ltnc.auction.common.protocol.Request;
 import ltnc.auction.common.protocol.RequestType;
@@ -90,6 +93,16 @@ public class AuctionListController {
     @FXML
     private ChoiceBox<String> sellerItemType;
 
+    // Nhóm thuộc tính riêng theo từng loại sản phẩm
+    @FXML
+    private VBox electronicsFields;
+
+    @FXML
+    private VBox artFields;
+
+    @FXML
+    private VBox vehicleFields;
+
     @FXML
     private TextField sellerBrand;
 
@@ -120,6 +133,119 @@ public class AuctionListController {
     @FXML
     private Label sellerMessage;
 
+    // Menu bên trái và các trang của khu vực người bán
+    @FXML
+    private Button sellerNavProducts;
+
+    @FXML
+    private Button sellerNavCreate;
+
+    @FXML
+    private Button sellerNavHistory;
+
+    @FXML
+    private Node sellerProductsPage;
+
+    @FXML
+    private Node sellerCreatePage;
+
+    @FXML
+    private Node sellerHistoryPage;
+
+    // Trang "Sản phẩm của tôi"
+    @FXML
+    private TableView<Auction> sellerProductTable;
+
+    @FXML
+    private TableColumn<Auction, String> productNameColumn;
+
+    @FXML
+    private TableColumn<Auction, String> productTypeColumn;
+
+    @FXML
+    private TableColumn<Auction, String> productStartColumn;
+
+    @FXML
+    private TableColumn<Auction, String> productPriceColumn;
+
+    @FXML
+    private TableColumn<Auction, String> productStatusColumn;
+
+    @FXML
+    private TableColumn<Auction, String> productEndColumn;
+
+    @FXML
+    private Label sellerProductsMessage;
+
+    // Chi tiết sản phẩm trong trang "Sản phẩm của tôi"
+    @FXML
+    private Node sellerDetailPlaceholder;
+
+    @FXML
+    private Node sellerDetailContent;
+
+    @FXML
+    private Label detailItemName;
+
+    @FXML
+    private Label detailItemCategory;
+
+    @FXML
+    private Label detailDescription;
+
+    @FXML
+    private Label detailExtraInfo;
+
+    @FXML
+    private Label detailStartingPrice;
+
+    @FXML
+    private Label detailIncrement;
+
+    @FXML
+    private Label detailCurrentPrice;
+
+    @FXML
+    private Label detailStatus;
+
+    @FXML
+    private Label detailCreatedAt;
+
+    @FXML
+    private Label detailEndAt;
+
+    @FXML
+    private Label detailRemainingTime;
+
+    private Timeline sellerCountdownTimeline;
+
+    // Trang "Kết quả & lịch sử"
+    @FXML
+    private TableView<Auction> sellerResultTable;
+
+    @FXML
+    private TableColumn<Auction, String> resultNameColumn;
+
+    @FXML
+    private TableColumn<Auction, String> resultPriceColumn;
+
+    @FXML
+    private TableColumn<Auction, String> resultWinnerColumn;
+
+    @FXML
+    private TableColumn<Auction, String> resultStatusColumn;
+
+    @FXML
+    private TableView<Bid> sellerBidTable;
+
+    @FXML
+    private TableColumn<Bid, String> sellerBidderColumn;
+
+    @FXML
+    private TableColumn<Bid, String> sellerBidAmountColumn;
+
+    @FXML
+    private TableColumn<Bid, String> sellerBidTimeColumn;
 
     @FXML
     private PasswordField loginPassword;
@@ -192,7 +318,11 @@ public class AuctionListController {
         registerRole.setValue("Người đấu giá");
 
         sellerItemType.getItems().setAll("Điện tử", "Nghệ thuật", "Phương tiện");
+        // Chỉ hiển thị các thuộc tính của loại sản phẩm đang được chọn
+        sellerItemType.valueProperty().addListener(
+                (observable, oldValue, newValue) -> showFieldsForType(toItemType(newValue)));
         sellerItemType.setValue("Điện tử");
+        showFieldsForType(ItemType.ELECTRONICS);
 
         // Cấu hình các cột trong bảng lịch sử đấu giá
         bidderColumn.setCellValueFactory(cell ->
@@ -244,6 +374,8 @@ public class AuctionListController {
 
                     loadBidHistory(auctionId);
                 });
+
+        configureSellerTables();
 
         setVisible(registerView, false);
         setVisible(adminView, false);
@@ -354,6 +486,8 @@ public class AuctionListController {
 
                         case "SELLER" -> {
                             setVisible(sellerView, true);
+                            showSellerProducts();
+                            startSellerCountdown();
 
                             statusLabel.setText(
                                     "Đăng nhập thành công với quyền Người bán."
@@ -483,6 +617,7 @@ public class AuctionListController {
 
         // Dừng tự động cập nhật lịch sử
         stopHistoryAutoRefresh();
+        stopSellerCountdown();
 
         currentUsername = null;
         currentRole = null;
@@ -495,6 +630,13 @@ public class AuctionListController {
 
         auctionIdField.clear();
         amountField.clear();
+
+        sellerProductTable.getItems().clear();
+        sellerResultTable.getItems().clear();
+        sellerBidTable.getItems().clear();
+        sellerProductsMessage.setText("");
+        sellerMessage.setText("");
+        showProductDetail(null);
 
         setVisible(adminView, false);
         setVisible(sellerView, false);
@@ -536,37 +678,38 @@ public class AuctionListController {
             return;
         }
 
-        ItemType type;
-        String brand = sellerBrand.getText().trim();
-        String artist = sellerArtist.getText().trim();
-        int warranty;
-        int year;
-        int mileage;
-        int plateNo;
+        ItemType type = toItemType(sellerItemType.getValue());
+        CreateItemRequest itemRequest;
         try {
-            warranty = parseNonNegative(sellerWarranty.getText(), "Bảo hành");
-            year = parseNonNegative(sellerYear.getText(), "Năm sáng tác");
-            mileage = parseNonNegative(sellerMileage.getText(), "Số km");
-            plateNo = parseNonNegative(sellerPlateNo.getText(), "Biển số");
-            type = switch (sellerItemType.getValue()) {
-                case "Nghệ thuật" -> ItemType.ART;
-                case "Phương tiện" -> ItemType.VEHICLE;
-                default -> ItemType.ELECTRONICS;
+            // Chỉ đọc và kiểm tra các trường thuộc loại sản phẩm đang chọn,
+            // các trường của loại khác được gửi là null.
+            itemRequest = switch (type) {
+                case ELECTRONICS -> {
+                    String brand = requireText(sellerBrand.getText(), "Vui lòng nhập thương hiệu.");
+                    int warranty = parseNonNegative(sellerWarranty.getText(), "Bảo hành");
+                    yield new CreateItemRequest(name, description, type,
+                            brand, warranty, null, null, null, null);
+                }
+                case ART -> {
+                    String artist = requireText(sellerArtist.getText(), "Vui lòng nhập tên nghệ sĩ/tác giả.");
+                    requireText(sellerYear.getText(), "Vui lòng nhập năm sáng tác.");
+                    int year = parseNonNegative(sellerYear.getText(), "Năm sáng tác");
+                    yield new CreateItemRequest(name, description, type,
+                            null, null, artist, year, null, null);
+                }
+                case VEHICLE -> {
+                    int mileage = parseNonNegative(sellerMileage.getText(), "Số km");
+                    String plateNo = requireText(sellerPlateNo.getText(), "Vui lòng nhập biển số xe.");
+                    yield new CreateItemRequest(name, description, type,
+                            null, null, null, null, mileage, plateNo);
+                }
             };
-            if (type == ItemType.ELECTRONICS && brand.isBlank()) {
-                throw new IllegalArgumentException("Vui lòng nhập thương hiệu.");
-            }
-            if (type == ItemType.ART && artist.isBlank()) {
-                throw new IllegalArgumentException("Vui lòng nhập tên nghệ sĩ/tác giả.");
-            }
         } catch (IllegalArgumentException exception) {
             sellerMessage.setText(exception.getMessage());
             return;
         }
 
         Instant endAt = endDate.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant().minusSeconds(1);
-        CreateItemRequest itemRequest = new CreateItemRequest(
-                name, description, 1L, type, brand, warranty, artist, year, mileage, plateNo);
         sellerMessage.setText("Đang tạo phiên đấu giá...");
 
         Thread worker = new Thread(() -> {
@@ -578,6 +721,7 @@ public class AuctionListController {
                     sellerMessage.setText(response.getMessage());
                     if (response.isSuccess()) {
                         clearSellerForm();
+                        loadSellerAuctions();
                     }
                 });
             } catch (Exception exception) {
@@ -616,6 +760,32 @@ public class AuctionListController {
         }
     }
 
+    private String requireText(String text, String errorMessage) {
+        String value = text == null ? "" : text.trim();
+        if (value.isEmpty()) {
+            throw new IllegalArgumentException(errorMessage);
+        }
+        return value;
+    }
+
+    private ItemType toItemType(String label) {
+        if (label == null) {
+            return ItemType.ELECTRONICS;
+        }
+        return switch (label) {
+            case "Nghệ thuật" -> ItemType.ART;
+            case "Phương tiện" -> ItemType.VEHICLE;
+            default -> ItemType.ELECTRONICS;
+        };
+    }
+
+    // Hiện nhóm thuộc tính của loại được chọn, ẩn các nhóm còn lại
+    private void showFieldsForType(ItemType type) {
+        setVisible(electronicsFields, type == ItemType.ELECTRONICS);
+        setVisible(artFields, type == ItemType.ART);
+        setVisible(vehicleFields, type == ItemType.VEHICLE);
+    }
+
     private void clearSellerForm() {
         sellerItemName.clear();
         sellerItemDescription.clear();
@@ -637,6 +807,253 @@ public class AuctionListController {
         statusLabel.setText(
                 "Chức năng này cần API tương ứng ở backend."
         );
+    }
+
+    // =========================================================
+    // KHU VỰC NGƯỜI BÁN: ĐIỀU HƯỚNG MENU VÀ DỮ LIỆU
+    // =========================================================
+
+    @FXML
+    private void showSellerProducts() {
+        showSellerPage(sellerProductsPage, sellerNavProducts);
+        loadSellerAuctions();
+    }
+
+    @FXML
+    private void showSellerCreate() {
+        showSellerPage(sellerCreatePage, sellerNavCreate);
+    }
+
+    @FXML
+    private void showSellerHistory() {
+        showSellerPage(sellerHistoryPage, sellerNavHistory);
+        loadSellerAuctions();
+    }
+
+    // Hiện một trang, ẩn các trang còn lại và đánh dấu mục menu đang chọn
+    private void showSellerPage(Node page, Button navButton) {
+        setVisible(sellerProductsPage, page == sellerProductsPage);
+        setVisible(sellerCreatePage, page == sellerCreatePage);
+        setVisible(sellerHistoryPage, page == sellerHistoryPage);
+
+        for (Button button : List.of(sellerNavProducts, sellerNavCreate, sellerNavHistory)) {
+            button.getStyleClass().remove("nav-item-active");
+        }
+        navButton.getStyleClass().add("nav-item-active");
+    }
+
+    private void configureSellerTables() {
+        productNameColumn.setCellValueFactory(cell -> text(cell.getValue().getItem().getName()));
+        productTypeColumn.setCellValueFactory(cell ->
+                text(typeLabel(cell.getValue().getItem().getCategory())));
+        productStartColumn.setCellValueFactory(cell -> text(money(cell.getValue().getStartingPrice())));
+        productPriceColumn.setCellValueFactory(cell -> text(money(cell.getValue().getHighestPrice())));
+        productStatusColumn.setCellValueFactory(cell -> text(statusText(cell.getValue().getStatus())));
+        productEndColumn.setCellValueFactory(cell -> text(time(cell.getValue().getEndAt())));
+
+        resultNameColumn.setCellValueFactory(cell -> text(cell.getValue().getItem().getName()));
+        resultPriceColumn.setCellValueFactory(cell -> text(money(cell.getValue().getHighestPrice())));
+        resultWinnerColumn.setCellValueFactory(cell -> {
+            String bidder = cell.getValue().getHighestBidderId();
+            return text(bidder == null ? "Chưa có lượt đặt" : bidder);
+        });
+        resultStatusColumn.setCellValueFactory(cell -> text(statusText(cell.getValue().getStatus())));
+
+        // Chọn sản phẩm ở trang "Sản phẩm của tôi" để xem chi tiết
+        sellerProductTable.getSelectionModel().selectedItemProperty()
+                .addListener((observable, oldValue, selected) -> showProductDetail(selected));
+
+        sellerBidderColumn.setCellValueFactory(cell -> text(cell.getValue().bidderId()));
+        sellerBidAmountColumn.setCellValueFactory(cell -> text(money(cell.getValue().amount())));
+        sellerBidTimeColumn.setCellValueFactory(cell -> text(time(cell.getValue().createdAt())));
+
+        // Chọn một phiên ở trang kết quả để xem lịch sử đặt giá của phiên đó
+        sellerResultTable.getSelectionModel().selectedItemProperty()
+                .addListener((observable, oldValue, selected) ->
+                        sellerBidTable.getItems().setAll(
+                                selected == null ? List.of() : selected.getBids()));
+    }
+
+    @FXML
+    private void loadSellerAuctions() {
+        if (!"SELLER".equals(currentRole) || currentUsername == null) {
+            return;
+        }
+        String sellerUsername = currentUsername;
+        sellerProductsMessage.setText("Đang tải danh sách sản phẩm...");
+
+        Thread worker = new Thread(() -> {
+            try (AuctionSocketClient client = new AuctionSocketClient(SERVER_HOST, SERVER_PORT)) {
+                Response response = client.send(new Request(
+                        RequestType.LIST_SELLER_AUCTIONS, sellerUsername, null, null, null));
+                Platform.runLater(() -> {
+                    if (!response.isSuccess()) {
+                        sellerProductsMessage.setText(response.getMessage());
+                        return;
+                    }
+                    List<Auction> auctions = response.auctions().stream()
+                            .sorted(Comparator.comparing(Auction::getStartAt,
+                                    Comparator.nullsLast(Comparator.reverseOrder())))
+                            .toList();
+
+                    String selectedProductId = sellerProductTable.getSelectionModel().getSelectedItem() == null
+                            ? null
+                            : sellerProductTable.getSelectionModel().getSelectedItem().getId();
+                    String selectedResultId = sellerResultTable.getSelectionModel().getSelectedItem() == null
+                            ? null
+                            : sellerResultTable.getSelectionModel().getSelectedItem().getId();
+
+                    sellerProductTable.getItems().setAll(auctions);
+                    sellerResultTable.getItems().setAll(auctions);
+
+                    if (selectedProductId != null) {
+                        auctions.stream()
+                                .filter(auction -> auction.getId().equals(selectedProductId))
+                                .findFirst()
+                                .ifPresentOrElse(
+                                        auction -> sellerProductTable.getSelectionModel().select(auction),
+                                        () -> showProductDetail(null)
+                                );
+                    } else {
+                        showProductDetail(null);
+                    }
+
+                    // Giữ lại phiên đang chọn ở trang kết quả sau khi làm mới
+                    if (selectedResultId != null) {
+                        auctions.stream()
+                                .filter(auction -> auction.getId().equals(selectedResultId))
+                                .findFirst()
+                                .ifPresent(auction -> sellerResultTable.getSelectionModel().select(auction));
+                    }
+
+                    sellerProductsMessage.setText(auctions.isEmpty()
+                            ? "Bạn chưa đăng sản phẩm nào."
+                            : "Đã tải " + auctions.size() + " sản phẩm.");
+                });
+            } catch (Exception exception) {
+                Platform.runLater(() ->
+                        sellerProductsMessage.setText("Không thể tải danh sách sản phẩm từ server."));
+            }
+        }, "seller-auctions-loader");
+        worker.setDaemon(true);
+        worker.start();
+    }
+
+    private static ReadOnlyStringWrapper text(String value) {
+        return new ReadOnlyStringWrapper(value == null ? "" : value);
+    }
+
+    private static String money(BigDecimal value) {
+        return value == null ? "" : CURRENCY_FORMAT.format(value);
+    }
+
+    private static String time(Instant value) {
+        return value == null ? "" : TIME_FORMATTER.format(value);
+    }
+
+    private static String typeLabel(ItemType type) {
+        if (type == null) {
+            return "";
+        }
+        return switch (type) {
+            case ELECTRONICS -> "Điện tử";
+            case ART -> "Nghệ thuật";
+            case VEHICLE -> "Phương tiện";
+        };
+    }
+
+    private static String statusText(AuctionStatus status) {
+        if (status == null) {
+            return "";
+        }
+        return switch (status) {
+            case OPEN -> "Đang mở";
+            case RUNNING -> "Đang diễn ra";
+            case FINISHED -> "Đã kết thúc";
+            case PAID -> "Đã thanh toán";
+            case CANCELED -> "Đã hủy";
+        };
+    }
+
+    private void showProductDetail(Auction auction) {
+        if (auction == null || auction.getItem() == null) {
+            setVisible(sellerDetailPlaceholder, true);
+            setVisible(sellerDetailContent, false);
+            return;
+        }
+
+        setVisible(sellerDetailPlaceholder, false);
+        setVisible(sellerDetailContent, true);
+
+        detailItemName.setText(auction.getItem().getName());
+        detailItemCategory.setText(typeLabel(auction.getItem().getCategory()));
+        String desc = auction.getItem().getDescription();
+        detailDescription.setText(desc == null || desc.isBlank() ? "(Không có mô tả)" : desc);
+        detailExtraInfo.setText(auction.getItem().getInfo());
+
+        detailStartingPrice.setText(money(auction.getStartingPrice()) + " VNĐ");
+        detailIncrement.setText(money(auction.getIncrement()) + " VNĐ");
+        detailCurrentPrice.setText(money(auction.getHighestPrice()) + " VNĐ");
+        detailStatus.setText(statusText(auction.getStatus()));
+        detailCreatedAt.setText(time(auction.getStartAt()));
+        detailEndAt.setText(time(auction.getEndAt()));
+        detailRemainingTime.setText(formatRemainingTime(auction.getEndAt(), auction.getStatus()));
+    }
+
+    private static String formatRemainingTime(Instant endAt, AuctionStatus status) {
+        if (status == AuctionStatus.FINISHED || status == AuctionStatus.PAID) {
+            return "Đã kết thúc";
+        }
+        if (status == AuctionStatus.CANCELED) {
+            return "Đã hủy";
+        }
+        if (endAt == null) {
+            return "—";
+        }
+        Instant now = Instant.now();
+        if (now.isAfter(endAt)) {
+            return "Hết thời gian (chờ hoàn tất)";
+        }
+        java.time.Duration duration = java.time.Duration.between(now, endAt);
+        long days = duration.toDays();
+        long hours = duration.toHoursPart();
+        long minutes = duration.toMinutesPart();
+        long seconds = duration.toSecondsPart();
+
+        if (days > 0) {
+            return String.format("%d ngày %d giờ %d phút", days, hours, minutes);
+        } else if (hours > 0) {
+            return String.format("%d giờ %d phút %d giây", hours, minutes, seconds);
+        } else if (minutes > 0) {
+            return String.format("%d phút %d giây", minutes, seconds);
+        } else {
+            return String.format("%d giây", Math.max(0, seconds));
+        }
+    }
+
+    private void startSellerCountdown() {
+        stopSellerCountdown();
+        sellerCountdownTimeline = new Timeline(
+                new KeyFrame(
+                        Duration.seconds(1),
+                        event -> {
+                            Auction selected = sellerProductTable.getSelectionModel().getSelectedItem();
+                            if (selected != null) {
+                                detailRemainingTime.setText(
+                                        formatRemainingTime(selected.getEndAt(), selected.getStatus()));
+                            }
+                        }
+                )
+        );
+        sellerCountdownTimeline.setCycleCount(Timeline.INDEFINITE);
+        sellerCountdownTimeline.play();
+    }
+
+    private void stopSellerCountdown() {
+        if (sellerCountdownTimeline != null) {
+            sellerCountdownTimeline.stop();
+            sellerCountdownTimeline = null;
+        }
     }
 
     // =========================================================
