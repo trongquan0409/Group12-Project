@@ -1,9 +1,12 @@
 package ltnc.auction.common.model;
 
 import java.time.Instant;
+
 import ltnc.auction.common.util.Validators;
 
-/** A vehicle put up for auction, such as a car or a motorbike. */
+/**
+ * A vehicle put up for auction, such as a car or a motorbike.
+ */
 public class Vehicle extends Item {
 
     private static final int MIN_MILEAGE_KM = 0;
@@ -23,15 +26,15 @@ public class Vehicle extends Item {
      * <p>Pass {@code null} for {@code id}, {@code createdAt} and {@code updatedAt} to create a new
      * item. Pass the stored values to restore an item loaded from the database.
      *
-     * @param id the database id, or {@code null} for a new item
-     * @param createdAt the creation time, or {@code null} for a new item
-     * @param updatedAt the last update time, or {@code null} for a new item
-     * @param name the item name, must not be blank
+     * @param id          the database id, or {@code null} for a new item
+     * @param createdAt   the creation time, or {@code null} for a new item
+     * @param updatedAt   the last update time, or {@code null} for a new item
+     * @param name        the item name, must not be blank
      * @param description the item description, may be {@code null}
-     * @param sellerId the id of the seller who owns this item, must be positive
-     * @param mileageKm the distance travelled in kilometres, from {@value #MIN_MILEAGE_KM} to
-     *     {@value #MAX_MILEAGE_KM}
-     * @param plateNo the licence plate number, must not be blank
+     * @param sellerId    the id of the seller who owns this item, must be positive
+     * @param mileageKm   the distance travelled in kilometres, from {@value #MIN_MILEAGE_KM} to
+     *                    {@value #MAX_MILEAGE_KM}
+     * @param plateNo     the licence plate number, must not be blank
      * @throws IllegalArgumentException if any value is invalid
      */
     public Vehicle(
@@ -63,7 +66,7 @@ public class Vehicle extends Item {
      * unchanged.
      *
      * @param mileageKm the new distance travelled in kilometres
-     * @param plateNo the new licence plate number, must not be blank
+     * @param plateNo   the new licence plate number, must not be blank
      * @throws IllegalArgumentException if a value is invalid
      */
     public void updateDetails(int mileageKm, String plateNo) {

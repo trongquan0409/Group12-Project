@@ -3,7 +3,9 @@ package ltnc.auction.server.security;
 import ltnc.auction.common.model.UserRole;
 import ltnc.auction.common.protocol.RequestType;
 
-/** Role-based access rules for socket requests. */
+/**
+ * Role-based access rules for socket requests.
+ */
 public final class SecurityConfig {
 
     public boolean isPublicRequest(RequestType requestType) {

@@ -97,7 +97,9 @@ public final class AuthService {
         return MessageDigest.isEqual(actual, expected) ? account.role() : null;
     }
 
-    /** Login entry point for the networking layer. */
+    /**
+     * Login entry point for the networking layer.
+     */
     @SuppressWarnings("unused")
     public LoginResponse login(String username, String password) {
         String roleName = authenticate(username, password);
@@ -113,7 +115,9 @@ public final class AuthService {
                 normalizedUsername, UserRole.valueOf(roleName));
     }
 
-    /** Account administration API; called when account management is connected. */
+    /**
+     * Account administration API; called when account management is connected.
+     */
     @SuppressWarnings("unused")
     public synchronized void updateStatus(String username, UserStatus status) {
         String normalizedUsername = normalize(username);
@@ -133,7 +137,9 @@ public final class AuthService {
         save();
     }
 
-    /** Authorization entry point for the request handler. */
+    /**
+     * Authorization entry point for the request handler.
+     */
     @SuppressWarnings("unused")
     public boolean isAuthorized(String token, RequestType requestType) {
         if (securityConfig.isPublicRequest(requestType)) {
@@ -171,7 +177,9 @@ public final class AuthService {
         return account == null || isInactive(account) ? null : account.role();
     }
 
-    /** Removes a session token on logout. */
+    /**
+     * Removes a session token on logout.
+     */
     @SuppressWarnings("unused")
     public void invalidateSession(String token) {
         if (token != null) {

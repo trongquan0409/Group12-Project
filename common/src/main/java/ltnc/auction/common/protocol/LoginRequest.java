@@ -4,7 +4,9 @@ import java.io.Serial;
 import java.io.Serializable;
 import java.util.Objects;
 
-/** Credentials sent by a client when requesting login. */
+/**
+ * Credentials sent by a client when requesting login.
+ */
 public record LoginRequest(String username, String password) implements Serializable {
     @Serial
     private static final long serialVersionUID = 1L;
