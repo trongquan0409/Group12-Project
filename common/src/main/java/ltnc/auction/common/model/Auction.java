@@ -1,10 +1,13 @@
 package ltnc.auction.common.model;
 
+import ltnc.auction.common.util.Validators;
+
 import java.io.Serializable;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 public final class Auction implements Serializable {
     private static final long serialVersionUID = 1L;
@@ -17,14 +20,18 @@ public final class Auction implements Serializable {
     private String highestBidderId;
     private final List<Bid> bids = new ArrayList<>();
 
-    public Auction(String id, Item item, BigDecimal startingPrice, BigDecimal increment, Instant startAt, Instant endAt) {
-        if (startingPrice.signum() < 0 || increment.signum() <= 0 || !endAt.isAfter(startAt)) {
-            throw new IllegalArgumentException("Thông tin phiên đấu giá không hợp lệ");
-        }
-        this.id = id;
-        this.item = item;
-        this.startingPrice = startingPrice;
-        this.increment = increment;
+    public Auction(
+            String id,
+            Item item,
+            BigDecimal startingPrice,
+            BigDecimal increment,
+            Instant startAt,
+            Instant endAt) {
+        Validators.requireEndAfterStart(startAt, endAt);
+        this.id = Objects.requireNonNull(id, "id must not be null");
+        this.item = Objects.requireNonNull(item, "item must not be null");
+        this.startingPrice = Validators.requireNotNegative(startingPrice, "startingPrice");
+        this.increment = Validators.requirePositive(increment, "increment");
         this.startAt = startAt;
         this.endAt = endAt;
         this.status = AuctionStatus.OPEN;
@@ -59,8 +66,35 @@ public final class Auction implements Serializable {
         return status;
     }
 
-    public synchronized void setStatus(AuctionStatus s) {
-        status = s;
+    public synchronized void start() {
+        if (status != AuctionStatus.OPEN) {
+            throw new IllegalStateException("Only OPEN status can start, now is " + status);
+        }
+        status = AuctionStatus.RUNNING;
+    }
+
+    public synchronized void finish() {
+        if (status != AuctionStatus.RUNNING) {
+            throw new IllegalStateException("Only RUNNING status can finish, now is " + status);
+        }
+        status = AuctionStatus.FINISHED;
+    }
+
+    public synchronized void cancel() {
+        boolean canCancel = (status == AuctionStatus.OPEN) ||
+                (status == AuctionStatus.RUNNING && bids.isEmpty());
+        if (!canCancel) {
+            throw new IllegalStateException("Only OPEN status or RUNNING status with no bids can cancel, now is " + status);
+        }
+        status = AuctionStatus.CANCELED;
+    }
+
+    public synchronized void markPaid() {
+        boolean canMarkPaid = (status == AuctionStatus.FINISHED && highestBidderId != null);
+        if (!canMarkPaid) {
+            throw new IllegalStateException("Only FINISHED status with a highest bidder can mark paid");
+        }
+        status = AuctionStatus.PAID;
     }
 
     public synchronized BigDecimal getHighestPrice() {

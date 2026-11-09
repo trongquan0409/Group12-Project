@@ -287,14 +287,14 @@ public final class AuctionManager {
         if (oldStatus == AuctionStatus.OPEN
                 && !now.isBefore(auction.getStartAt())) {
 
-            auction.setStatus(AuctionStatus.RUNNING);
+            auction.start();
         }
 
         if ((auction.getStatus() == AuctionStatus.RUNNING
                 || auction.getStatus() == AuctionStatus.OPEN)
                 && !now.isBefore(auction.getEndAt())) {
 
-            auction.setStatus(AuctionStatus.FINISHED);
+            auction.finish();
         }
 
         return oldStatus != auction.getStatus();
