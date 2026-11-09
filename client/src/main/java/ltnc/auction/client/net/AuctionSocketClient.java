@@ -1,3 +1,37 @@
 package ltnc.auction.client.net;
-import java.io.*; import java.net.Socket; import ltnc.auction.common.protocol.*;
-public final class AuctionSocketClient implements AutoCloseable {private final Socket socket;private final ObjectOutputStream out;private final ObjectInputStream in;public AuctionSocketClient(String host,int port)throws IOException{socket=new Socket(host,port);out=new ObjectOutputStream(socket.getOutputStream());out.flush();in=new ObjectInputStream(socket.getInputStream());}public synchronized Response send(Request request)throws IOException,ClassNotFoundException{out.writeObject(request);out.flush();Object obj=in.readObject();if(!(obj instanceof Response r))throw new IOException("Phản hồi không hợp lệ");return r;}@Override public void close()throws IOException{socket.close();}}
+
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.net.Socket;
+
+import ltnc.auction.common.protocol.Response;
+import ltnc.auction.common.protocol.Request;
+
+public final class AuctionSocketClient implements AutoCloseable {
+    private final Socket socket;
+    private final ObjectOutputStream out;
+    private final ObjectInputStream in;
+
+    public AuctionSocketClient(String host, int port) throws IOException {
+        socket = new Socket(host, port);
+        out = new ObjectOutputStream(socket.getOutputStream());
+        out.flush();
+        in = new ObjectInputStream(socket.getInputStream());
+    }
+
+    public synchronized Response send(Request request) throws IOException, ClassNotFoundException {
+        out.writeObject(request);
+        out.flush();
+        Object obj = in.readObject();
+        if (!(obj instanceof Response r)) {
+            throw new IOException("Phản hồi không hợp lệ");
+        }
+        return r;
+    }
+
+    @Override
+    public void close() throws IOException {
+        socket.close();
+    }
+}

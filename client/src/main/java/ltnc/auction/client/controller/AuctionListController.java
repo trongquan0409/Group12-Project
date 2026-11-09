@@ -253,9 +253,6 @@ public class AuctionListController {
     private PasswordField registerPassword;
 
     @FXML
-    private ChoiceBox<String> loginRole;
-
-    @FXML
     private ChoiceBox<String> registerRole;
 
     @FXML
@@ -300,14 +297,6 @@ public class AuctionListController {
 
     @FXML
     public void initialize() {
-
-        loginRole.getItems().setAll(
-                "Người đấu giá",
-                "Người bán",
-                "Admin (demo)"
-        );
-
-        loginRole.setValue("Người đấu giá");
 
         registerRole.getItems().setAll(
                 "Người đấu giá",
@@ -404,28 +393,12 @@ public class AuctionListController {
 
         String username = loginUsername.getText().trim();
         String password = loginPassword.getText();
-        String selectedRole = loginRole.getValue();
 
         if (username.isBlank() || password.isBlank()) {
             authMessage.setText(
                     "Vui lòng nhập tên đăng nhập và mật khẩu."
             );
             return;
-        }
-
-        if (selectedRole == null) {
-            authMessage.setText("Vui lòng chọn vai trò.");
-            return;
-        }
-
-        String expectedRole;
-
-        if (selectedRole.startsWith("Admin")) {
-            expectedRole = "ADMIN";
-        } else if (selectedRole.equals("Người bán")) {
-            expectedRole = "SELLER";
-        } else {
-            expectedRole = "BIDDER";
         }
 
         authMessage.setText("Đang kết nối server...");
@@ -456,13 +429,6 @@ public class AuctionListController {
                     }
 
                     String authenticatedRole = response.role();
-
-                    if (!expectedRole.equals(authenticatedRole)) {
-                        authMessage.setText(
-                                "Tài khoản không thuộc vai trò đã chọn."
-                        );
-                        return;
-                    }
 
                     currentUsername = username;
                     currentRole = authenticatedRole;
