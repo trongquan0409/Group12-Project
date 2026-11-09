@@ -101,6 +101,7 @@ public final class AuctionManager {
             throw new IllegalArgumentException("Thời gian kết thúc phải ở tương lai");
         }
 
+        Item item = itemFactory.createItem(sellerIdOf(sellerUsername), request);
         long sellerId = Math.max(1L, (long) sellerUsername.hashCode() & 0x7fffffffL);
         CreateItemRequest normalized = new CreateItemRequest(
                 request.name(), request.description(), request.type(),
@@ -122,6 +123,24 @@ public final class AuctionManager {
     public synchronized List<Auction> listAuctions() {
         refreshStatuses();
         return List.copyOf(auctions.values());
+    }
+
+    // Get all auctions created by one seller
+    public synchronized List<Auction> listAuctionsBySeller(String sellerUsername) {
+        if (sellerUsername == null || sellerUsername.isBlank()) {
+            return List.of();
+        }
+        refreshStatuses();
+        long sellerId = sellerIdOf(sellerUsername);
+        return auctions.values().stream()
+                .filter(auction -> auction.getItem() != null
+                        && auction.getItem().getSellerId() == sellerId)
+                .toList();
+    }
+
+    // Map a seller username to the id stored in Item.sellerId
+    private static long sellerIdOf(String sellerUsername) {
+        return Math.max(1L, (long) sellerUsername.hashCode() & 0x7fffffffL);
     }
 
     // Get one auction by ID

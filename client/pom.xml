@@ -34,8 +34,8 @@
             <plugin>
                 <groupId>org.openjfx</groupId>
                 <artifactId>javafx-maven-plugin</artifactId>
-                <version>0.0.8</version>
                 <configuration>
+                    <skip>false</skip>
                     <mainClass>ltnc.auction.client.AuctionClientApp</mainClass>
                 </configuration>
             </plugin>

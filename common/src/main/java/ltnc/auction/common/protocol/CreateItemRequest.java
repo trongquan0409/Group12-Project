@@ -1,5 +1,7 @@
 package ltnc.auction.common.protocol;
 
+import java.io.Serial;
+import java.io.Serializable;
 import ltnc.auction.common.model.ItemType;
 
 /**
@@ -25,4 +27,8 @@ public record CreateItemRequest(
         String artist,
         Integer year,
         Integer mileageKm,
-        String plateNo) {}
+        String plateNo) implements Serializable {
+
+    @Serial
+    private static final long serialVersionUID = 1L;
+}

@@ -60,6 +60,7 @@ public final class ClientHandler implements Runnable {
                 case LOGIN -> handleLogin(request);
                 case REGISTER -> handleRegister(request);
                 case LIST_AUCTIONS -> new Response(true, "OK", manager.listAuctions());
+                case LIST_SELLER_AUCTIONS -> handleListSellerAuctions(request);
                 case LIST_BIDS -> handleListBids(request);
                 case PLACE_BID -> handlePlaceBid(request);
                 case CREATE_AUCTION -> handleCreateAuction(request);
@@ -70,6 +71,13 @@ public final class ClientHandler implements Runnable {
             System.err.println("Lỗi nghiệp vụ: " + exception.getMessage());
             return new Response(false, "Đã xảy ra lỗi khi xử lý yêu cầu!", null);
         }
+    }
+
+    private Response handleListSellerAuctions(Request request) {
+        if (request.getUsername() == null || request.getUsername().isBlank()) {
+            return new Response(false, "Thiếu thông tin người bán.", null);
+        }
+        return new Response(true, "OK", manager.listAuctionsBySeller(request.getUsername()));
     }
 
     private Response handleListBids(Request request) {
