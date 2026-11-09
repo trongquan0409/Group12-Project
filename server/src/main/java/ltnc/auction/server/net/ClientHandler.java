@@ -4,6 +4,7 @@ import java.io.EOFException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
+import java.util.List;
 
 import ltnc.auction.common.exception.AuctionClosedException;
 import ltnc.auction.common.exception.InvalidBidException;
@@ -105,7 +106,7 @@ public final class ClientHandler implements Runnable {
                 request.getStartingPrice(), request.getIncrement(), request.getEndAt());
         return new Response(true,
                 "Tạo phiên đấu giá thành công. Mã phiên: " + auction.getId(),
-                java.util.List.of(auction));
+                List.of(auction));
     }
 
     private Response handleLogin(Request request) {

@@ -710,8 +710,6 @@ public class AuctionListController {
         }
 
         Instant endAt = endDate.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant().minusSeconds(1);
-        CreateItemRequest itemRequest = new CreateItemRequest(
-                name, description, type, brand, warranty, artist, year, mileage, plateNo);
         sellerMessage.setText("Đang tạo phiên đấu giá...");
 
         Thread worker = new Thread(() -> {
