@@ -24,7 +24,10 @@
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>exec-maven-plugin</artifactId>
-                <version>3.5.0</version>
+                <configuration>
+                    <skip>false</skip>
+                    <mainClass>ltnc.auction.server.net.AuctionServer</mainClass>
+                </configuration>
             </plugin>
         </plugins>
     </build>
