@@ -18,7 +18,7 @@ import ltnc.auction.common.exception.InvalidBidException;
 import ltnc.auction.common.model.Auction;
 import ltnc.auction.common.model.AuctionStatus;
 import ltnc.auction.common.model.Bid;
-import ltnc.auction.common.model.CreateItemRequest;
+import ltnc.auction.common.protocol.CreateItemRequest;
 import ltnc.auction.common.model.Item;
 import ltnc.auction.common.factory.DefaultItemFactory;
 import ltnc.auction.common.factory.ItemFactory;
@@ -103,12 +103,12 @@ public final class AuctionManager {
 
         long sellerId = Math.max(1L, (long) sellerUsername.hashCode() & 0x7fffffffL);
         CreateItemRequest normalized = new CreateItemRequest(
-                request.name(), request.description(), sellerId, request.type(),
-                request.brand(), request.warranty(), request.artist(), request.year(),
+                request.name(), request.description(), request.type(),
+                request.brand(), request.warrantyMonths(), request.artist(), request.year(),
                 request.mileageKm(), request.plateNo()
         );
 
-        Item item = itemFactory.createItem(normalized);
+        Item item = itemFactory.createItem(sellerId, normalized);
         Instant now = Instant.now();
         Auction auction = new Auction(
                 UUID.randomUUID().toString(), item, startingPrice, increment, now, endAt

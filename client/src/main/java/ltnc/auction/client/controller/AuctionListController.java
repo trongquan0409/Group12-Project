@@ -33,7 +33,7 @@ import javafx.util.Duration;
 import ltnc.auction.client.net.AuctionSocketClient;
 import ltnc.auction.common.model.Auction;
 import ltnc.auction.common.model.Bid;
-import ltnc.auction.common.model.CreateItemRequest;
+import ltnc.auction.common.protocol.CreateItemRequest;
 import ltnc.auction.common.model.ItemType;
 import ltnc.auction.common.protocol.Request;
 import ltnc.auction.common.protocol.RequestType;
@@ -542,12 +542,12 @@ public class AuctionListController {
         int warranty;
         int year;
         int mileage;
-        int plateNo;
+        String plateNo;
         try {
             warranty = parseNonNegative(sellerWarranty.getText(), "Bảo hành");
             year = parseNonNegative(sellerYear.getText(), "Năm sáng tác");
             mileage = parseNonNegative(sellerMileage.getText(), "Số km");
-            plateNo = parseNonNegative(sellerPlateNo.getText(), "Biển số");
+            plateNo = String.valueOf(parseNonNegative(sellerPlateNo.getText(), "Biển số"));
             type = switch (sellerItemType.getValue()) {
                 case "Nghệ thuật" -> ItemType.ART;
                 case "Phương tiện" -> ItemType.VEHICLE;
@@ -566,7 +566,7 @@ public class AuctionListController {
 
         Instant endAt = endDate.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant().minusSeconds(1);
         CreateItemRequest itemRequest = new CreateItemRequest(
-                name, description, 1L, type, brand, warranty, artist, year, mileage, plateNo);
+                name, description, type, brand, warranty, artist, year, mileage, plateNo);
         sellerMessage.setText("Đang tạo phiên đấu giá...");
 
         Thread worker = new Thread(() -> {

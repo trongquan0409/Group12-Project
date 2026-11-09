@@ -5,7 +5,7 @@ import java.io.Serializable;
 import java.math.BigDecimal;
 import java.time.Instant;
 
-import ltnc.auction.common.model.CreateItemRequest;
+import ltnc.auction.common.protocol.CreateItemRequest;
 
 public final class Request implements Serializable {
     @Serial
