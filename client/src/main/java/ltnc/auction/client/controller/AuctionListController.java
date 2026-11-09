@@ -11,6 +11,8 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
@@ -28,7 +30,6 @@ import javafx.scene.control.PasswordField;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
-import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.util.Duration;
 
@@ -44,6 +45,7 @@ import ltnc.auction.common.protocol.Response;
 
 public class AuctionListController {
 
+    private static final Logger LOGGER = Logger.getLogger(AuctionListController.class.getName());
     private static final String SERVER_HOST = "localhost";
     private static final int SERVER_PORT = 5050;
 
@@ -53,9 +55,6 @@ public class AuctionListController {
 
     private static final NumberFormat CURRENCY_FORMAT =
             NumberFormat.getNumberInstance(Locale.forLanguageTag("vi-VN"));
-
-    @FXML
-    private StackPane root;
 
     @FXML
     private VBox authView;
@@ -254,6 +253,9 @@ public class AuctionListController {
     private PasswordField registerPassword;
 
     @FXML
+    private ChoiceBox<String> loginRole;
+
+    @FXML
     private ChoiceBox<String> registerRole;
 
     @FXML
@@ -299,6 +301,14 @@ public class AuctionListController {
     @FXML
     public void initialize() {
 
+        loginRole.getItems().setAll(
+                "Người đấu giá",
+                "Người bán",
+                "Admin (demo)"
+        );
+
+        loginRole.setValue("Người đấu giá");
+
         registerRole.getItems().setAll(
                 "Người đấu giá",
                 "Người bán"
@@ -309,7 +319,7 @@ public class AuctionListController {
         sellerItemType.getItems().setAll("Điện tử", "Nghệ thuật", "Phương tiện");
         // Chỉ hiển thị các thuộc tính của loại sản phẩm đang được chọn
         sellerItemType.valueProperty().addListener(
-                (observable, oldValue, newValue) -> showFieldsForType(toItemType(newValue)));
+                (_, _, newValue) -> showFieldsForType(toItemType(newValue)));
         sellerItemType.setValue("Điện tử");
         showFieldsForType(ItemType.ELECTRONICS);
 
@@ -343,7 +353,7 @@ public class AuctionListController {
         // Xử lý khi người dùng chọn một phiên đấu giá
         auctionList.getSelectionModel()
                 .selectedItemProperty()
-                .addListener((observable, oldValue, selected) -> {
+                .addListener((_, _, selected) -> {
 
                     if (updatingAuctionList) {
                         return;
@@ -394,12 +404,28 @@ public class AuctionListController {
 
         String username = loginUsername.getText().trim();
         String password = loginPassword.getText();
+        String selectedRole = loginRole.getValue();
 
         if (username.isBlank() || password.isBlank()) {
             authMessage.setText(
                     "Vui lòng nhập tên đăng nhập và mật khẩu."
             );
             return;
+        }
+
+        if (selectedRole == null) {
+            authMessage.setText("Vui lòng chọn vai trò.");
+            return;
+        }
+
+        String expectedRole;
+
+        if (selectedRole.startsWith("Admin")) {
+            expectedRole = "ADMIN";
+        } else if (selectedRole.equals("Người bán")) {
+            expectedRole = "SELLER";
+        } else {
+            expectedRole = "BIDDER";
         }
 
         authMessage.setText("Đang kết nối server...");
@@ -430,6 +456,13 @@ public class AuctionListController {
                     }
 
                     String authenticatedRole = response.role();
+
+                    if (!expectedRole.equals(authenticatedRole)) {
+                        authMessage.setText(
+                                "Tài khoản không thuộc vai trò đã chọn."
+                        );
+                        return;
+                    }
 
                     currentUsername = username;
                     currentRole = authenticatedRole;
@@ -691,7 +724,7 @@ public class AuctionListController {
                     }
                 });
             } catch (Exception exception) {
-                exception.printStackTrace();
+                LOGGER.log(Level.SEVERE, "Failed to create auction.", exception);
 
                 String message = exception.getMessage();
 
@@ -767,14 +800,6 @@ public class AuctionListController {
         sellerItemType.setValue("Điện tử");
     }
 
-    @FXML
-    private void showPrototypeMessage() {
-
-        statusLabel.setText(
-                "Chức năng này cần API tương ứng ở backend."
-        );
-    }
-
     // =========================================================
     // KHU VỰC NGƯỜI BÁN: ĐIỀU HƯỚNG MENU VÀ DỮ LIỆU
     // =========================================================
@@ -827,7 +852,7 @@ public class AuctionListController {
 
         // Chọn sản phẩm ở trang "Sản phẩm của tôi" để xem chi tiết
         sellerProductTable.getSelectionModel().selectedItemProperty()
-                .addListener((observable, oldValue, selected) -> showProductDetail(selected));
+                .addListener((_, _, selected) -> showProductDetail(selected));
 
         sellerBidderColumn.setCellValueFactory(cell -> text(cell.getValue().bidderId()));
         sellerBidAmountColumn.setCellValueFactory(cell -> text(money(cell.getValue().amount())));
@@ -835,7 +860,7 @@ public class AuctionListController {
 
         // Chọn một phiên ở trang kết quả để xem lịch sử đặt giá của phiên đó
         sellerResultTable.getSelectionModel().selectedItemProperty()
-                .addListener((observable, oldValue, selected) ->
+                .addListener((_, _, selected) ->
                         sellerBidTable.getItems().setAll(
                                 selected == null ? List.of() : selected.getBids()));
     }
@@ -1002,7 +1027,7 @@ public class AuctionListController {
         sellerCountdownTimeline = new Timeline(
                 new KeyFrame(
                         Duration.seconds(1),
-                        event -> {
+                        _ -> {
                             Auction selected = sellerProductTable.getSelectionModel().getSelectedItem();
                             if (selected != null) {
                                 detailRemainingTime.setText(
@@ -1241,7 +1266,7 @@ public class AuctionListController {
         historyRefreshTimeline = new Timeline(
                 new KeyFrame(
                         Duration.seconds(3),
-                        event -> {
+                        _ -> {
 
                             if (selectedAuctionId != null
                                     && "BIDDER".equals(currentRole)) {
