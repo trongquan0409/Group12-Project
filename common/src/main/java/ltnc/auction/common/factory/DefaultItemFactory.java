@@ -1,45 +1,58 @@
 package ltnc.auction.common.factory;
 
+import java.util.Objects;
 import ltnc.auction.common.model.Art;
-import ltnc.auction.common.model.CreateItemRequest;
 import ltnc.auction.common.model.Electronics;
 import ltnc.auction.common.model.Item;
 import ltnc.auction.common.model.Vehicle;
+import ltnc.auction.common.protocol.CreateItemRequest;
 
-import java.time.Instant;
 
+/**
+ * Default {@link ItemFactory} that picks the item class from the type given in the request.
+ *
+ * <p>This class only chooses the class and builds the object. The values of each field are
+ * validated by the item classes themselves.
+ */
 public class DefaultItemFactory implements ItemFactory {
+
+    /**
+     * {@inheritDoc}
+     *
+     * <p>Only the fields that belong to the requested type are read; the others are ignored.
+     */
     @Override
-    public Item createItem(CreateItemRequest request) {
-        if (request == null || request.type() == null) {
-            throw new IllegalArgumentException("Item request and type are required.");
+    public Item createItem(long sellerId, CreateItemRequest request) {
+        Objects.requireNonNull(request, "request must not be null");
+        if (request.type() == null) {
+            throw new IllegalArgumentException("type must not be null");
         }
 
-        Long newId = null;
-        Instant createdAt = null;
-        Instant updatedAt = null;
-
         return switch (request.type()) {
-            case ELECTRONICS -> {
-                yield new Electronics(
-                        newId, createdAt, updatedAt,
-                        request.name(), request.description(), request.sellerId(),
-                        request.brand(), request.warranty());
-            }
-            case ART -> {
-                yield new Art(
-                        newId, createdAt, updatedAt,
-                        request.name(), request.description(), request.sellerId(),
-                        request.artist(), request.year());
-            }
-            case VEHICLE -> {
-                yield new Vehicle(
-                        newId, createdAt, updatedAt,
-                        request.name(), request.description(), request.sellerId(),
-                        request.mileageKm(), request.plateNo());
-            }
-            default -> throw new IllegalArgumentException();
+            case ELECTRONICS -> new Electronics(
+                    null, null, null,
+                    request.name(), request.description(), sellerId,
+                    request.brand(), required(request.warrantyMonths(), "warrantyMonths"));
+            case ART -> new Art(
+                    null, null, null,
+                    request.name(), request.description(), sellerId,
+                    request.artist(), required(request.year(), "year"));
+            case VEHICLE -> new Vehicle(
+                    null, null, null,
+                    request.name(), request.description(), sellerId,
+                    required(request.mileageKm(), "mileageKm"), request.plateNo());
         };
+    }
 
+    /**
+     * Unwraps a number sent by the client.
+     *
+     * @throws IllegalArgumentException if the client did not send the value
+     */
+    private static int required(Integer value, String fieldName) {
+        if (value == null) {
+            throw new IllegalArgumentException(fieldName + " is required");
+        }
+        return value;
     }
 }
