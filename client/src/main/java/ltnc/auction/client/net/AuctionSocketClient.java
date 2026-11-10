@@ -8,9 +8,9 @@ import java.net.Socket;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
-import ltnc.auction.common.protocol.Request;
 import ltnc.auction.common.protocol.Response;
 import ltnc.auction.common.protocol.ServerEvent;
+import ltnc.auction.common.protocol.Request;
 
 public final class AuctionSocketClient implements AutoCloseable {
 

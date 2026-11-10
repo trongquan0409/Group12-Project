@@ -61,14 +61,43 @@ public final class Request implements Serializable {
         this.endAt = endAt;
     }
 
-    public RequestType getType() { return type; }
-    public String getUsername() { return username; }
-    public String getPassword() { return password; }
-    public String getAuctionId() { return auctionId; }
-    public BigDecimal getAmount() { return amount; }
-    public String getRole() { return role; }
-    public CreateItemRequest getItemRequest() { return itemRequest; }
-    public BigDecimal getStartingPrice() { return startingPrice; }
-    public BigDecimal getIncrement() { return increment; }
-    public Instant getEndAt() { return endAt; }
+    public RequestType getType() {
+        return type;
+    }
+
+    public String getUsername() {
+        return username;
+    }
+
+    public String getPassword() {
+        return password;
+    }
+
+    public String getAuctionId() {
+        return auctionId;
+    }
+
+    public BigDecimal getAmount() {
+        return amount;
+    }
+
+    public String getRole() {
+        return role;
+    }
+
+    public CreateItemRequest getItemRequest() {
+        return itemRequest;
+    }
+
+    public BigDecimal getStartingPrice() {
+        return startingPrice;
+    }
+
+    public BigDecimal getIncrement() {
+        return increment;
+    }
+
+    public Instant getEndAt() {
+        return endAt;
+    }
 }

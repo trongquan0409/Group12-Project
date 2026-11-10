@@ -1,6 +1,7 @@
 package ltnc.auction.common.model;
 
 import java.time.Instant;
+
 import ltnc.auction.common.util.Validators;
 
 /**
@@ -26,14 +27,14 @@ public abstract class Item extends Entity {
      * item. Pass the stored values to restore an item loaded from the database; they are kept as is,
      * so this constructor never changes {@code updatedAt}.
      *
-     * @param id the database id, or {@code null} for a new item
-     * @param createdAt the creation time, or {@code null} for a new item
-     * @param updatedAt the last update time, or {@code null} for a new item
-     * @param name the item name, must not be blank
+     * @param id          the database id, or {@code null} for a new item
+     * @param createdAt   the creation time, or {@code null} for a new item
+     * @param updatedAt   the last update time, or {@code null} for a new item
+     * @param name        the item name, must not be blank
      * @param description the item description, may be {@code null}
-     * @param sellerId the id of the seller who owns this item, must be positive
+     * @param sellerId    the id of the seller who owns this item, must be positive
      * @throws IllegalArgumentException if {@code name}, {@code description} or {@code sellerId} is
-     *     invalid
+     *                                  invalid
      */
     protected Item(
             Long id,
@@ -66,7 +67,7 @@ public abstract class Item extends Entity {
      * <p>Both values are validated before either is assigned, so a failed call leaves this item
      * unchanged. This method is final because the constructor relies on the same rules.
      *
-     * @param name the new name, must not be blank
+     * @param name        the new name, must not be blank
      * @param description the new description, may be {@code null}
      * @throws IllegalArgumentException if {@code name} or {@code description} is invalid
      */
@@ -78,10 +79,14 @@ public abstract class Item extends Entity {
         touch();
     }
 
-    /** Returns the category of this item. */
+    /**
+     * Returns the category of this item.
+     */
     public abstract ItemType getCategory();
 
-    /** Returns a one-line, human-readable description including the type-specific data. */
+    /**
+     * Returns a one-line, human-readable description including the type-specific data.
+     */
     public abstract String getInfo();
 
     private static String validName(String name) {

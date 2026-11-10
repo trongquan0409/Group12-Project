@@ -4,6 +4,7 @@ import java.io.EOFException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
+import java.util.List;
 
 import ltnc.auction.common.exception.AuctionClosedException;
 import ltnc.auction.common.exception.InvalidBidException;
@@ -311,22 +312,12 @@ public final class ClientHandler implements Runnable {
         );
     }
 
-    private Response handleRegister(
-            Request request
-    ) {
-
-        String role =
-                authService.register(
-                        request.getUsername(),
-                        request.getPassword(),
-                        request.getRole()
-                );
-
-        return new Response(
-                true,
-                "Đăng ký tài khoản thành công.",
-                null,
-                role
+    private Response handleRegister(Request request) {
+        String role = authService.register(
+                request.getUsername(),
+                request.getPassword(),
+                request.getRole()
         );
+        return new Response(true, "Đăng ký tài khoản thành công.", null, role);
     }
 }

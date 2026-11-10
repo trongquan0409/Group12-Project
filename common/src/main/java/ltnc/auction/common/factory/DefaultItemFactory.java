@@ -1,6 +1,7 @@
 package ltnc.auction.common.factory;
 
 import java.util.Objects;
+
 import ltnc.auction.common.model.Art;
 import ltnc.auction.common.model.Electronics;
 import ltnc.auction.common.model.Item;
@@ -40,7 +41,8 @@ public class DefaultItemFactory implements ItemFactory {
             case VEHICLE -> new Vehicle(
                     null, null, null,
                     request.name(), request.description(), sellerId,
-                    required(request.mileageKm(), "mileageKm"), request.plateNo());
+                    required(request.mileageKm(), "mileageKm"),
+                    request.plateNo());
         };
     }
 
