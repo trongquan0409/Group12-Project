@@ -47,7 +47,11 @@ import ltnc.auction.common.protocol.Response;
 public class AuctionListController {
 
     private static final Logger LOGGER = Logger.getLogger(AuctionListController.class.getName());
-    private static final String SERVER_HOST = "localhost";
+    private static final String SERVER_HOST =
+            System.getProperty(
+                    "auction.host",
+                    System.getenv().getOrDefault("AUCTION_HOST", "localhost")
+            );
     private static final int SERVER_PORT = 5050;
 
     private static final DateTimeFormatter TIME_FORMATTER =
