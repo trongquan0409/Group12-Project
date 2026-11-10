@@ -160,6 +160,15 @@ public final class ClientHandler implements Runnable {
                                 manager.listAuctions()
                         );
 
+                case LIST_SELLER_AUCTIONS ->
+                        new Response(
+                                true,
+                                "OK",
+                                manager.listAuctionsBySeller(
+                                        request.getUsername()
+                                )
+                        );
+
                 case LIST_BIDS ->
                         handleListBids(request);
 
@@ -280,7 +289,7 @@ public final class ClientHandler implements Runnable {
                 "Tạo phiên đấu giá thành công. "
                         + "Mã phiên: "
                         + auction.getId(),
-                java.util.List.of(auction)
+                List.of(auction)
         );
     }
 

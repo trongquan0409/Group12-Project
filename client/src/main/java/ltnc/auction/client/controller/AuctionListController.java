@@ -14,6 +14,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import javafx.animation.KeyFrame;
+import javafx.animation.Timeline;
 import javafx.application.Platform;
 import javafx.beans.property.ReadOnlyStringWrapper;
 import javafx.fxml.FXML;
@@ -29,6 +31,7 @@ import javafx.scene.control.TableView;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.VBox;
+import javafx.util.Duration;
 
 import ltnc.auction.client.net.AuctionSocketClient;
 import ltnc.auction.common.event.AuctionEvent;
@@ -219,6 +222,7 @@ public class AuctionListController {
     private Label detailRemainingTime;
 
     private Timeline sellerCountdownTimeline;
+    private Timeline historyRefreshTimeline;
 
     // Trang "Kết quả & lịch sử"
     @FXML
@@ -315,6 +319,8 @@ public class AuctionListController {
 
         configureAuctionSelection();
 
+        configureSellerTables();
+
         setVisible(registerView, false);
         setVisible(adminView, false);
         setVisible(sellerView, false);
@@ -385,7 +391,7 @@ public class AuctionListController {
 
     private boolean connectToServer() {
 
-        if (socketClient != null) {
+        if (socketClient != null && socketClient.isConnected()) {
             return true;
         }
 
@@ -439,6 +445,11 @@ public class AuctionListController {
                 return;
             }
 
+            if ("SELLER".equals(currentRole)) {
+                loadSellerAuctions();
+                return;
+            }
+
             loadAuctions();
 
             String eventAuctionId =
@@ -459,13 +470,6 @@ public class AuctionListController {
                 );
             }
         });
-        configureSellerTables();
-
-        setVisible(registerView, false);
-        setVisible(adminView, false);
-        setVisible(sellerView, false);
-        setVisible(bidderView, false);
-        setVisible(authView, true);
     }
 
     private void disconnectFromServer() {
@@ -514,6 +518,7 @@ public class AuctionListController {
         String username = loginUsername.getText().trim();
         String password = loginPassword.getText();
 
+        if (username.isBlank() || password.isBlank()) {
             authMessage.setText(
                     "Vui lòng nhập tên đăng nhập và mật khẩu."
             );
@@ -556,9 +561,12 @@ public class AuctionListController {
                     String authenticatedRole =
                             response.role();
 
-                    if (!expectedRole.equals(
-                            authenticatedRole
-                    )) {
+                    if (authenticatedRole == null) {
+                        authMessage.setText(
+                                "Vai trò trả về từ server không hợp lệ."
+                        );
+                        return;
+                    }
 
                     currentUsername = username;
                     currentRole = authenticatedRole;
@@ -615,6 +623,7 @@ public class AuctionListController {
                             );
 
                             loadAuctions();
+                            startHistoryAutoRefresh();
                         }
 
                         default -> {
@@ -916,19 +925,6 @@ public class AuctionListController {
                         .toInstant()
                         .minusSeconds(1);
 
-        CreateItemRequest itemRequest =
-                new CreateItemRequest(
-                        name,
-                        description,
-                        type,
-                        brand,
-                        warranty,
-                        artist,
-                        year,
-                        mileage,
-                        plateNo
-                );
-
         String username = currentUsername;
 
         sellerMessage.setText(
@@ -1143,7 +1139,7 @@ public class AuctionListController {
         String sellerUsername = currentUsername;
         sellerProductsMessage.setText("Đang tải danh sách sản phẩm...");
 
-        Thread worker = new Thread(() -> {
+        Thread.ofVirtual().start(() -> {
             try (AuctionSocketClient client = new AuctionSocketClient(SERVER_HOST, SERVER_PORT)) {
                 Response response = client.send(new Request(
                         RequestType.LIST_SELLER_AUCTIONS, sellerUsername, null, null, null));
@@ -1195,9 +1191,7 @@ public class AuctionListController {
                 Platform.runLater(() ->
                         sellerProductsMessage.setText("Không thể tải danh sách sản phẩm từ server."));
             }
-        }, "seller-auctions-loader");
-        worker.setDaemon(true);
-        worker.start();
+        });
     }
 
     private static ReadOnlyStringWrapper text(String value) {
@@ -1555,11 +1549,7 @@ public class AuctionListController {
 
                 historyLoading.set(false);
             }
-
-        }, "bid-history-loader");
-
-        worker.setDaemon(true);
-        worker.start();
+        });
     }
 
     // =========================================================
