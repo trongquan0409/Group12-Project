@@ -102,7 +102,7 @@ public final class Auction implements Serializable {
         if (status == AuctionStatus.OPEN && !now.isBefore(startAt)) {
             start();
         }
-        if (status == AuctionStatus.RUNNING && !now.isAfter(endAt)) {
+        if (status == AuctionStatus.RUNNING && !now.isBefore(endAt)) {
             finish();
         }
         return beforeStatus != status;
