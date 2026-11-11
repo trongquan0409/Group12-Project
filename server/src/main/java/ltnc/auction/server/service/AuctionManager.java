@@ -281,23 +281,7 @@ public final class AuctionManager {
 
     // Refresh the status of one auction
     private boolean refreshStatus(Auction auction) {
-        Instant now = Instant.now();
-        AuctionStatus oldStatus = auction.getStatus();
-
-        if (oldStatus == AuctionStatus.OPEN
-                && !now.isBefore(auction.getStartAt())) {
-
-            auction.start();
-        }
-
-        if ((auction.getStatus() == AuctionStatus.RUNNING
-                || auction.getStatus() == AuctionStatus.OPEN)
-                && !now.isBefore(auction.getEndAt())) {
-
-            auction.finish();
-        }
-
-        return oldStatus != auction.getStatus();
+        return auction.refreshStatus(Instant.now());
     }
 
     // Save auctions to persistent storage

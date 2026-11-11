@@ -97,6 +97,17 @@ public final class Auction implements Serializable {
         status = AuctionStatus.PAID;
     }
 
+    public synchronized boolean refreshStatus(Instant now) {
+        AuctionStatus beforeStatus = status;
+        if (status == AuctionStatus.OPEN && !now.isBefore(startAt)) {
+            start();
+        }
+        if (status == AuctionStatus.RUNNING && !now.isAfter(endAt)) {
+            finish();
+        }
+        return beforeStatus != status;
+    }
+
     public synchronized BigDecimal getHighestPrice() {
         return highestPrice;
     }
