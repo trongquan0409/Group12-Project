@@ -9,6 +9,9 @@ import java.nio.file.Path;
 import java.time.Instant;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 import ltnc.auction.common.model.Art;
 import ltnc.auction.common.model.Auction;
@@ -48,6 +51,16 @@ public final class AuctionServer {
 
         manager.addObserver(
                 new SocketAuctionObserver(realtimeRegistry)
+        );
+
+        ScheduledExecutorService scheduler =
+                Executors.newSingleThreadScheduledExecutor();
+
+        scheduler.scheduleAtFixedRate(
+                manager::refreshStatuses,
+                0,
+                1,
+                TimeUnit.SECONDS
         );
 
         initializeSampleAuction(manager);
