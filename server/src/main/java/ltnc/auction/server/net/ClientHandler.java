@@ -281,6 +281,7 @@ public final class ClientHandler implements Runnable {
                         request.getItemRequest(),
                         request.getStartingPrice(),
                         request.getIncrement(),
+                        request.getStartAt(),
                         request.getEndAt()
                 );
 
