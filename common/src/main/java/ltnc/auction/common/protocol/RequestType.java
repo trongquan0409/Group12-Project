@@ -8,5 +8,6 @@ public enum RequestType {
     LIST_BIDS,
     PLACE_BID,
     CREATE_AUCTION,
+    CANCEL_AUCTION,
     PING
 }
