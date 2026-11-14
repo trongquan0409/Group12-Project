@@ -65,6 +65,7 @@ public final class ClientHandler implements Runnable {
                 case LIST_BIDS -> handleListBids(request);
                 case PLACE_BID -> handlePlaceBid(request);
                 case CREATE_AUCTION -> handleCreateAuction(request);
+                case CANCEL_AUCTION -> handleCancelAuction(request);
             };
         } catch (InvalidBidException | AuctionClosedException | IllegalArgumentException exception) {
             return new Response(false, exception.getMessage(), null);
@@ -107,6 +108,22 @@ public final class ClientHandler implements Runnable {
         return new Response(true,
                 "Tạo phiên đấu giá thành công. Mã phiên: " + auction.getId(),
                 List.of(auction));
+    }
+
+    private Response handleCancelAuction(Request request) {
+        if (request.getUsername() == null || request.getUsername().isBlank()) {
+            return new Response(false, "Missing seller username.", null);
+        }
+        try {
+            manager.cancelAuction(request.getAuctionId(), request.getUsername());
+        } catch (IllegalStateException exception) {
+            return new Response(false,
+                    "The auction cannot be canceled: It has finished or already had bids.",
+                    null);
+        }
+        return new Response(true,
+                "Successful. Canceled the auction " + request.getAuctionId(),
+                null);
     }
 
     private Response handleLogin(Request request) {
