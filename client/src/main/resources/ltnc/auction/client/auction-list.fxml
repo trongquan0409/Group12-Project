@@ -328,27 +328,33 @@
                             <ComboBox fx:id="bidderStatusFilter" prefWidth="145"/>
                         </HBox>
                         <HBox spacing="6" alignment="CENTER_LEFT">
+                            <Label text="Khoảng giá:" styleClass="detail-label"/>
+                            <MenuButton fx:id="bidderPriceMenuButton" text="Tất cả" prefWidth="185">
+                                <items>
+                                    <CustomMenuItem hideOnClick="false" styleClass="price-filter-menu-item">
+                                        <content>
+                                            <VBox spacing="8" prefWidth="230" style="-fx-padding: 4px;">
+                                                <HBox spacing="6" alignment="CENTER_LEFT">
+                                                    <TextField fx:id="bidderMinPriceField" promptText="Từ (0)"
+                                                               HBox.hgrow="ALWAYS" onAction="#filterBidderAuctions"/>
+                                                    <Label text="-" styleClass="muted"/>
+                                                    <TextField fx:id="bidderMaxPriceField"
+                                                               promptText="Không giới hạn"
+                                                               HBox.hgrow="ALWAYS" onAction="#filterBidderAuctions"/>
+                                                </HBox>
+                                                <Pane fx:id="bidderPriceRangeHost" prefWidth="220" minWidth="180"
+                                                      prefHeight="22" minHeight="22" maxHeight="22"/>
+                                            </VBox>
+                                        </content>
+                                    </CustomMenuItem>
+                                </items>
+                            </MenuButton>
+                        </HBox>
+                        <HBox spacing="6" alignment="CENTER_LEFT">
                             <Label text="Sắp xếp:" styleClass="detail-label"/>
                             <ComboBox fx:id="bidderSortFilter" prefWidth="195"/>
                         </HBox>
                     </FlowPane>
-                    <HBox spacing="12" alignment="CENTER_LEFT">
-                        <Label text="Khoảng giá (VNĐ):" styleClass="detail-label"/>
-                        <HBox spacing="6" alignment="CENTER_LEFT" HBox.hgrow="ALWAYS">
-                            <Label text="Từ:" styleClass="muted"/>
-                            <TextField fx:id="bidderMinPriceField" promptText="0" prefWidth="115"
-                                       onAction="#filterBidderAuctions"/>
-                            <Slider fx:id="bidderMinPriceSlider" min="0" max="100000000" value="0"
-                                    HBox.hgrow="ALWAYS"/>
-                        </HBox>
-                        <HBox spacing="6" alignment="CENTER_LEFT" HBox.hgrow="ALWAYS">
-                            <Label text="Đến:" styleClass="muted"/>
-                            <TextField fx:id="bidderMaxPriceField" promptText="Không giới hạn" prefWidth="115"
-                                       onAction="#filterBidderAuctions"/>
-                            <Slider fx:id="bidderMaxPriceSlider" min="0" max="100000000" value="100000000"
-                                    HBox.hgrow="ALWAYS"/>
-                        </HBox>
-                    </HBox>
                 </VBox>
 
                 <SplitPane orientation="HORIZONTAL" dividerPositions="0.65" VBox.vgrow="ALWAYS"

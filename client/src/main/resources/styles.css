@@ -201,3 +201,32 @@
     -fx-padding: 4px 0 4px 0;
     -fx-cursor: v-resize;
 }
+
+.price-range-track {
+    -fx-background-color: #dce3ee;
+    -fx-background-radius: 999px;
+}
+
+.price-range-bar {
+    -fx-background-color: #245ca6;
+    -fx-background-radius: 999px;
+}
+
+.price-range-thumb {
+    -fx-background-color: white;
+    -fx-background-radius: 999px;
+    -fx-border-color: #245ca6;
+    -fx-border-width: 2.5px;
+    -fx-border-radius: 999px;
+}
+
+.price-range-thumb:hover {
+    -fx-border-color: #17477f;
+}
+
+.price-filter-menu-item,
+.price-filter-menu-item:focused,
+.price-filter-menu-item:hover {
+    -fx-background-color: transparent;
+    -fx-padding: 6px 8px;
+}

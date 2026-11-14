@@ -206,13 +206,26 @@ class AuctionListControllerTest {
                 new BigDecimal("22300000"), new BigDecimal("100000"), start, end);
         Auction a2 = new Auction("A2", new Vehicle(2L, null, null, "Car", "", 1L, 0, "30A-12345"),
                 new BigDecimal("120000000"), new BigDecimal("1000000"), start, end);
+        Auction small = new Auction("A3", new Electronics(3L, null, null, "Cable", "", 1L, "Anker", 6),
+                new BigDecimal("1000"), new BigDecimal("100"), start, end);
 
-        assertEquals(25_000_000L, AuctionListController.computeSliderMaxBound(List.of(a1)));
-        assertEquals(150_000_000L, AuctionListController.computeSliderMaxBound(List.of(a1, a2)));
+        assertEquals(1_000L, AuctionListController.computeSliderMaxBound(List.of(small)));
+        assertEquals(22_300_000L, AuctionListController.computeSliderMaxBound(List.of(a1)));
+        assertEquals(120_000_000L, AuctionListController.computeSliderMaxBound(List.of(a1, a2)));
 
+        assertEquals(1_000L, AuctionListController.snapPriceToStep(1_000, 1_000L));
+        assertEquals(500L, AuctionListController.snapPriceToStep(504, 1_000L));
         assertEquals(0L, AuctionListController.snapPriceToStep(-500, 100_000_000L));
         assertEquals(25_000_000L, AuctionListController.snapPriceToStep(25_400_000, 100_000_000L));
         assertEquals(26_000_000L, AuctionListController.snapPriceToStep(25_600_000, 100_000_000L));
         assertEquals(100_000_000L, AuctionListController.snapPriceToStep(120_000_000, 100_000_000L));
+
+        assertEquals("Tất cả", AuctionListController.formatPriceButtonLabel(null, null));
+        assertEquals("Từ 5.000.000",
+                AuctionListController.formatPriceButtonLabel(new BigDecimal("5000000"), null));
+        assertEquals("Đến 20.000.000",
+                AuctionListController.formatPriceButtonLabel(null, new BigDecimal("20000000")));
+        assertEquals("5.000.000 - 20.000.000",
+                AuctionListController.formatPriceButtonLabel(new BigDecimal("5000000"), new BigDecimal("20000000")));
     }
 }

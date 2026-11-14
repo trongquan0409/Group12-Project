@@ -23,8 +23,12 @@ import java.util.logging.Logger;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.application.Platform;
+import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.ReadOnlyStringWrapper;
+import javafx.beans.property.SimpleDoubleProperty;
 import javafx.fxml.FXML;
+import javafx.geometry.Point2D;
+import javafx.scene.Cursor;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.ChoiceBox;
@@ -32,11 +36,14 @@ import javafx.scene.control.ComboBox;
 import javafx.scene.control.DatePicker;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.Label;
+import javafx.scene.control.MenuButton;
 import javafx.scene.control.PasswordField;
-import javafx.scene.control.Slider;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
+import javafx.scene.input.MouseEvent;
+import javafx.scene.layout.Pane;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.util.Duration;
 
@@ -298,16 +305,16 @@ public class AuctionListController {
     private ComboBox<String> bidderStatusFilter;
 
     @FXML
+    private MenuButton bidderPriceMenuButton;
+
+    @FXML
     private TextField bidderMinPriceField;
 
     @FXML
     private TextField bidderMaxPriceField;
 
     @FXML
-    private Slider bidderMinPriceSlider;
-
-    @FXML
-    private Slider bidderMaxPriceSlider;
+    private Pane bidderPriceRangeHost;
 
     @FXML
     private ComboBox<String> bidderSortFilter;
@@ -375,6 +382,7 @@ public class AuctionListController {
 
     private final List<Auction> allBidderAuctions = new ArrayList<>();
     private Timeline bidderCountdownTimeline;
+    private final PriceRangeSlider bidderPriceRangeSlider = new PriceRangeSlider();
     private long bidderSliderMaxBound = DEFAULT_SLIDER_MAX_PRICE;
     private boolean syncingPriceControls;
 
@@ -692,8 +700,9 @@ public class AuctionListController {
             bidderMinPriceField.clear();
             bidderMaxPriceField.clear();
             updateSliderMaxBound(DEFAULT_SLIDER_MAX_PRICE, true);
-            bidderMinPriceSlider.setValue(0);
-            bidderMaxPriceSlider.setValue(bidderSliderMaxBound);
+            bidderPriceRangeSlider.setLowValue(0);
+            bidderPriceRangeSlider.setHighValue(bidderSliderMaxBound);
+            bidderPriceMenuButton.setText(FILTER_ALL);
             bidderSortFilter.setValue(SORT_DEFAULT);
             bidderAuctionTable.getSortOrder().clear();
         } finally {
@@ -1358,10 +1367,28 @@ public class AuctionListController {
             bidderMinPriceField.clear();
             bidderMaxPriceField.clear();
             updateSliderMaxBound(computeSliderMaxBound(allBidderAuctions), true);
-            bidderMinPriceSlider.setValue(0);
-            bidderMaxPriceSlider.setValue(bidderSliderMaxBound);
+            bidderPriceRangeSlider.setLowValue(0);
+            bidderPriceRangeSlider.setHighValue(bidderSliderMaxBound);
+            bidderPriceMenuButton.setText(FILTER_ALL);
             bidderSortFilter.setValue(SORT_DEFAULT);
             bidderAuctionTable.getSortOrder().clear();
+        } finally {
+            updatingAuctionList = false;
+            syncingPriceControls = false;
+        }
+        applyBidderFilter(true);
+    }
+
+    @FXML
+    private void clearBidderPriceFilter() {
+        updatingAuctionList = true;
+        syncingPriceControls = true;
+        try {
+            bidderMinPriceField.clear();
+            bidderMaxPriceField.clear();
+            bidderPriceRangeSlider.setLowValue(0);
+            bidderPriceRangeSlider.setHighValue(bidderSliderMaxBound);
+            bidderPriceMenuButton.setText(FILTER_ALL);
         } finally {
             updatingAuctionList = false;
             syncingPriceControls = false;
@@ -1385,6 +1412,7 @@ public class AuctionListController {
             return;
         }
 
+        bidderPriceMenuButton.setText(formatPriceButtonLabel(minPrice, maxPrice));
         String keyword = bidderSearchField.getText();
         String type = bidderTypeFilter.getValue();
         String status = bidderStatusFilter.getValue();
@@ -1506,28 +1534,45 @@ public class AuctionListController {
         }
     }
 
+    static String formatPriceButtonLabel(BigDecimal minPrice, BigDecimal maxPrice) {
+        if (minPrice == null && maxPrice == null) {
+            return FILTER_ALL;
+        }
+        if (minPrice != null && maxPrice == null) {
+            return "Từ " + money(minPrice);
+        }
+        if (minPrice == null) {
+            return "Đến " + money(maxPrice);
+        }
+        return money(minPrice) + " - " + money(maxPrice);
+    }
+
     private void configurePriceSliders() {
+        bidderPriceRangeSlider.prefWidthProperty().bind(bidderPriceRangeHost.widthProperty());
+        bidderPriceRangeSlider.prefHeightProperty().bind(bidderPriceRangeHost.heightProperty());
+        bidderPriceRangeHost.getChildren().setAll(bidderPriceRangeSlider);
+
         syncingPriceControls = true;
         try {
             updateSliderMaxBound(DEFAULT_SLIDER_MAX_PRICE, true);
-            bidderMinPriceSlider.setValue(0);
-            bidderMaxPriceSlider.setValue(bidderSliderMaxBound);
+            bidderPriceRangeSlider.setLowValue(0);
+            bidderPriceRangeSlider.setHighValue(bidderSliderMaxBound);
         } finally {
             syncingPriceControls = false;
         }
 
-        bidderMinPriceSlider.valueProperty().addListener((_, _, newValue) -> {
+        bidderPriceRangeSlider.lowValueProperty().addListener((_, _, newValue) -> {
             if (syncingPriceControls || updatingAuctionList) {
                 return;
             }
             long snapped = snapPriceToStep(newValue.doubleValue(), bidderSliderMaxBound);
-            long maxSliderVal = Math.round(bidderMaxPriceSlider.getValue());
+            long maxSliderVal = Math.round(bidderPriceRangeSlider.getHighValue());
             if (snapped > maxSliderVal) {
                 snapped = maxSliderVal;
             }
             syncingPriceControls = true;
             try {
-                bidderMinPriceSlider.setValue(snapped);
+                bidderPriceRangeSlider.setLowValue(snapped);
                 if (snapped <= 0) {
                     bidderMinPriceField.clear();
                 } else {
@@ -1539,23 +1584,19 @@ public class AuctionListController {
             filterBidderAuctions();
         });
 
-        bidderMaxPriceSlider.valueProperty().addListener((_, _, newValue) -> {
+        bidderPriceRangeSlider.highValueProperty().addListener((_, _, newValue) -> {
             if (syncingPriceControls || updatingAuctionList) {
                 return;
             }
             long snapped = snapPriceToStep(newValue.doubleValue(), bidderSliderMaxBound);
-            long minSliderVal = Math.round(bidderMinPriceSlider.getValue());
+            long minSliderVal = Math.round(bidderPriceRangeSlider.getLowValue());
             if (snapped < minSliderVal) {
                 snapped = minSliderVal;
             }
             syncingPriceControls = true;
             try {
-                bidderMaxPriceSlider.setValue(snapped);
-                if (snapped >= bidderSliderMaxBound) {
-                    bidderMaxPriceField.clear();
-                } else {
-                    bidderMaxPriceField.setText(CURRENCY_FORMAT.format(snapped));
-                }
+                bidderPriceRangeSlider.setHighValue(snapped);
+                bidderMaxPriceField.setText(CURRENCY_FORMAT.format(snapped));
             } finally {
                 syncingPriceControls = false;
             }
@@ -1585,15 +1626,15 @@ public class AuctionListController {
             syncingPriceControls = true;
             try {
                 if (parsed == null) {
-                    bidderMinPriceSlider.setValue(0);
+                    bidderPriceRangeSlider.setLowValue(0);
                 } else {
                     long value = parsed.min(BigDecimal.valueOf(100_000_000_000L)).longValue();
-                    if (value > bidderSliderMaxBound) {
-                        boolean maxUnlimited = bidderMaxPriceField.getText() == null
-                                || bidderMaxPriceField.getText().isBlank();
-                        updateSliderMaxBound(roundUpNicePrice(value), maxUnlimited);
+                    boolean maxUnlimited = bidderMaxPriceField.getText() == null
+                            || bidderMaxPriceField.getText().isBlank();
+                    if (maxUnlimited && value > bidderSliderMaxBound) {
+                        updateSliderMaxBound(value, true);
                     }
-                    bidderMinPriceSlider.setValue(Math.clamp(value, 0L, bidderSliderMaxBound));
+                    bidderPriceRangeSlider.setLowValue(Math.clamp(value, 0L, bidderSliderMaxBound));
                 }
             } finally {
                 syncingPriceControls = false;
@@ -1609,13 +1650,15 @@ public class AuctionListController {
             syncingPriceControls = true;
             try {
                 if (parsed == null) {
-                    bidderMaxPriceSlider.setValue(bidderSliderMaxBound);
+                    long loadedMax = computeSliderMaxBound(allBidderAuctions);
+                    Long typedMin = parsePriceOrNull(bidderMinPriceField.getText());
+                    long targetMax = typedMin != null && typedMin > loadedMax ? typedMin : loadedMax;
+                    updateSliderMaxBound(targetMax, true);
                 } else {
                     long value = parsed.min(BigDecimal.valueOf(100_000_000_000L)).longValue();
-                    if (value > bidderSliderMaxBound) {
-                        updateSliderMaxBound(roundUpNicePrice(value), false);
-                    }
-                    bidderMaxPriceSlider.setValue(Math.clamp(value, 0L, bidderSliderMaxBound));
+                    long targetMax = Math.max(1L, value);
+                    updateSliderMaxBound(targetMax, false);
+                    bidderPriceRangeSlider.setHighValue(Math.clamp(value, 0L, bidderSliderMaxBound));
                 }
             } finally {
                 syncingPriceControls = false;
@@ -1626,28 +1669,23 @@ public class AuctionListController {
     }
 
     private void syncSliderRangeWithLoadedAuctions(long loadedMaxBound) {
-        long targetMax = loadedMaxBound;
         Long typedMin = parsePriceOrNull(bidderMinPriceField.getText());
         Long typedMax = parsePriceOrNull(bidderMaxPriceField.getText());
-        if (typedMin != null && typedMin > targetMax) {
-            targetMax = roundUpNicePrice(typedMin);
-        }
-        if (typedMax != null && typedMax > targetMax) {
-            targetMax = roundUpNicePrice(typedMax);
-        }
-
         boolean maxUnlimited = bidderMaxPriceField.getText() == null
                 || bidderMaxPriceField.getText().isBlank();
+        long targetMax = (!maxUnlimited && typedMax != null)
+                ? Math.max(1L, typedMax)
+                : (typedMin != null && typedMin > loadedMaxBound ? typedMin : loadedMaxBound);
         syncingPriceControls = true;
         try {
             updateSliderMaxBound(targetMax, maxUnlimited);
             if (typedMin == null) {
-                bidderMinPriceSlider.setValue(0);
+                bidderPriceRangeSlider.setLowValue(0);
             } else {
-                bidderMinPriceSlider.setValue(Math.clamp(typedMin, 0L, bidderSliderMaxBound));
+                bidderPriceRangeSlider.setLowValue(Math.clamp(typedMin, 0L, bidderSliderMaxBound));
             }
             if (!maxUnlimited && typedMax != null) {
-                bidderMaxPriceSlider.setValue(Math.clamp(typedMax, 0L, bidderSliderMaxBound));
+                bidderPriceRangeSlider.setHighValue(Math.clamp(typedMax, 0L, bidderSliderMaxBound));
             }
         } finally {
             syncingPriceControls = false;
@@ -1666,14 +1704,11 @@ public class AuctionListController {
     }
 
     private void updateSliderMaxBound(long maxBound, boolean resetMaxSliderToTop) {
-        bidderSliderMaxBound = Math.max(1_000_000L, maxBound);
-        bidderMinPriceSlider.setMax(bidderSliderMaxBound);
-        bidderMaxPriceSlider.setMax(bidderSliderMaxBound);
-        double step = computePriceStep(bidderSliderMaxBound);
-        bidderMinPriceSlider.setBlockIncrement(step);
-        bidderMaxPriceSlider.setBlockIncrement(step);
+        bidderSliderMaxBound = Math.max(1L, maxBound);
+        bidderPriceRangeSlider.setMin(0);
+        bidderPriceRangeSlider.setMax(bidderSliderMaxBound);
         if (resetMaxSliderToTop) {
-            bidderMaxPriceSlider.setValue(bidderSliderMaxBound);
+            bidderPriceRangeSlider.setHighValue(bidderSliderMaxBound);
         }
     }
 
@@ -1691,42 +1726,30 @@ public class AuctionListController {
         if (maxPrice.signum() <= 0) {
             return DEFAULT_SLIDER_MAX_PRICE;
         }
-        long maxLong = maxPrice.min(BigDecimal.valueOf(100_000_000_000L)).longValue();
-        return roundUpNicePrice(maxLong);
-    }
-
-    static long roundUpNicePrice(long value) {
-        if (value <= 1_000_000L) {
-            long unit = 100_000L;
-            return Math.max(1_000_000L, ((value + unit - 1) / unit) * unit);
-        }
-        long unit;
-        if (value <= 10_000_000L) {
-            unit = 1_000_000L;
-        } else if (value <= 100_000_000L) {
-            unit = 5_000_000L;
-        } else if (value <= 1_000_000_000L) {
-            unit = 50_000_000L;
-        } else {
-            unit = 100_000_000L;
-        }
-        return ((value + unit - 1) / unit) * unit;
+        return Math.max(1L, maxPrice.min(BigDecimal.valueOf(100_000_000_000L)).longValue());
     }
 
     static long computePriceStep(long maxBound) {
-        if (maxBound <= 1_000_000L) {
-            return 10_000L;
+        if (maxBound <= 100L) {
+            return 1L;
         }
-        if (maxBound <= 10_000_000L) {
-            return 100_000L;
+        double target = maxBound / 100.0;
+        long magnitude = 1L;
+        while (magnitude * 10L <= target) {
+            magnitude *= 10L;
         }
-        if (maxBound <= 100_000_000L) {
-            return 1_000_000L;
+        double normalized = target / magnitude;
+        long factor;
+        if (normalized < 1.5) {
+            factor = 1L;
+        } else if (normalized < 3.5) {
+            factor = 2L;
+        } else if (normalized < 7.5) {
+            factor = 5L;
+        } else {
+            factor = 10L;
         }
-        if (maxBound <= 1_000_000_000L) {
-            return 5_000_000L;
-        }
-        return 10_000_000L;
+        return Math.max(1L, factor * magnitude);
     }
 
     static long snapPriceToStep(double value, long maxBound) {
@@ -2244,6 +2267,293 @@ public class AuctionListController {
 
             node.setVisible(visible);
             node.setManaged(visible);
+        }
+    }
+
+    private static final class PriceRangeSlider extends Region {
+
+        private static final double TRACK_HEIGHT = 4.0;
+        private static final double THUMB_SIZE = 14.0;
+        private static final double CONTROL_HEIGHT = 22.0;
+        private static final double DEFAULT_PREF_WIDTH = 210.0;
+        private static final double MIN_WIDTH = 100.0;
+
+        private final DoubleProperty min = new SimpleDoubleProperty(this, "min", 0.0) {
+            @Override
+            protected void invalidated() {
+                clampBounds();
+                requestLayout();
+            }
+        };
+
+        private final DoubleProperty max = new SimpleDoubleProperty(this, "max", 100_000_000.0) {
+            @Override
+            protected void invalidated() {
+                clampBounds();
+                requestLayout();
+            }
+        };
+
+        private final DoubleProperty lowValue = new SimpleDoubleProperty(this, "lowValue", 0.0) {
+            @Override
+            protected void invalidated() {
+                double clamped = clampLow(get());
+                if (Double.compare(clamped, get()) != 0) {
+                    set(clamped);
+                    return;
+                }
+                updateThumbZOrder();
+                requestLayout();
+            }
+        };
+
+        private final DoubleProperty highValue = new SimpleDoubleProperty(this, "highValue", 100_000_000.0) {
+            @Override
+            protected void invalidated() {
+                double clamped = clampHigh(get());
+                if (Double.compare(clamped, get()) != 0) {
+                    set(clamped);
+                    return;
+                }
+                updateThumbZOrder();
+                requestLayout();
+            }
+        };
+
+        private final Region track = new Region();
+        private final Region rangeBar = new Region();
+        private final Region lowThumb = new Region();
+        private final Region highThumb = new Region();
+
+        private boolean adjusting;
+        private boolean draggingLowThumb;
+
+        private PriceRangeSlider() {
+            getStyleClass().add("price-range-slider");
+            track.getStyleClass().add("price-range-track");
+            rangeBar.getStyleClass().add("price-range-bar");
+            lowThumb.getStyleClass().add("price-range-thumb");
+            highThumb.getStyleClass().add("price-range-thumb");
+
+            lowThumb.setCursor(Cursor.HAND);
+            highThumb.setCursor(Cursor.HAND);
+            setCursor(Cursor.HAND);
+
+            getChildren().addAll(track, rangeBar, lowThumb, highThumb);
+            installMouseHandlers();
+        }
+
+        private double getMin() {
+            return min.get();
+        }
+
+        private void setMin(double value) {
+            min.set(value);
+        }
+
+        private double getMax() {
+            return max.get();
+        }
+
+        private void setMax(double value) {
+            max.set(value);
+        }
+
+        private double getLowValue() {
+            return lowValue.get();
+        }
+
+        private void setLowValue(double value) {
+            lowValue.set(value);
+        }
+
+        private DoubleProperty lowValueProperty() {
+            return lowValue;
+        }
+
+        private double getHighValue() {
+            return highValue.get();
+        }
+
+        private void setHighValue(double value) {
+            highValue.set(value);
+        }
+
+        private DoubleProperty highValueProperty() {
+            return highValue;
+        }
+
+        private void installMouseHandlers() {
+            lowThumb.setOnMousePressed(event -> {
+                draggingLowThumb = true;
+                lowThumb.toFront();
+                updateValueFromEvent(event, true);
+                event.consume();
+            });
+            lowThumb.setOnMouseDragged(event -> {
+                updateValueFromEvent(event, true);
+                event.consume();
+            });
+
+            highThumb.setOnMousePressed(event -> {
+                draggingLowThumb = false;
+                highThumb.toFront();
+                updateValueFromEvent(event, false);
+                event.consume();
+            });
+            highThumb.setOnMouseDragged(event -> {
+                updateValueFromEvent(event, false);
+                event.consume();
+            });
+
+            setOnMousePressed(event -> {
+                double localX = toLocalX(event);
+                double lowX = valueToX(getLowValue());
+                double highX = valueToX(getHighValue());
+                if (Math.abs(localX - lowX) <= Math.abs(localX - highX)) {
+                    draggingLowThumb = localX <= highX || getLowValue() >= getMax();
+                } else {
+                    draggingLowThumb = false;
+                }
+                if (draggingLowThumb) {
+                    lowThumb.toFront();
+                } else {
+                    highThumb.toFront();
+                }
+                updateValueFromEvent(event, draggingLowThumb);
+                event.consume();
+            });
+
+            setOnMouseDragged(event -> {
+                updateValueFromEvent(event, draggingLowThumb);
+                event.consume();
+            });
+        }
+
+        private void updateValueFromEvent(MouseEvent event, boolean updateLow) {
+            double value = xToValue(toLocalX(event));
+            if (updateLow) {
+                setLowValue(value);
+            } else {
+                setHighValue(value);
+            }
+        }
+
+        private double toLocalX(MouseEvent event) {
+            Point2D local = sceneToLocal(event.getSceneX(), event.getSceneY());
+            return local == null ? event.getX() : local.getX();
+        }
+
+        private void updateThumbZOrder() {
+            double span = getMax() - getMin();
+            if (span > 0 && Double.compare(getLowValue(), getHighValue()) == 0) {
+                if (getHighValue() >= getMax()) {
+                    lowThumb.toFront();
+                } else if (getLowValue() <= getMin()) {
+                    highThumb.toFront();
+                }
+            }
+        }
+
+        private void clampBounds() {
+            if (adjusting) {
+                return;
+            }
+            adjusting = true;
+            try {
+                if (getMax() < getMin()) {
+                    setMax(getMin());
+                }
+                double clampedLow = Math.clamp(getLowValue(), getMin(), getMax());
+                double clampedHigh = Math.clamp(getHighValue(), clampedLow, getMax());
+                if (Double.compare(clampedLow, getLowValue()) != 0) {
+                    setLowValue(clampedLow);
+                }
+                if (Double.compare(clampedHigh, getHighValue()) != 0) {
+                    setHighValue(clampedHigh);
+                }
+            } finally {
+                adjusting = false;
+            }
+        }
+
+        private double clampLow(double candidate) {
+            double upper = Math.max(getMin(), Math.min(getMax(), getHighValue()));
+            return Math.clamp(candidate, getMin(), upper);
+        }
+
+        private double clampHigh(double candidate) {
+            double lower = Math.max(getMin(), Math.min(getMax(), getLowValue()));
+            return Math.clamp(candidate, lower, getMax());
+        }
+
+        private double valueToX(double value) {
+            double radius = THUMB_SIZE / 2.0;
+            double trackStart = radius;
+            double trackLen = Math.max(1.0, getWidth() - THUMB_SIZE);
+            double span = getMax() - getMin();
+            if (span <= 0) {
+                return trackStart;
+            }
+            double ratio = Math.clamp((value - getMin()) / span, 0.0, 1.0);
+            return trackStart + ratio * trackLen;
+        }
+
+        private double xToValue(double x) {
+            double radius = THUMB_SIZE / 2.0;
+            double trackStart = radius;
+            double trackLen = Math.max(1.0, getWidth() - THUMB_SIZE);
+            double ratio = Math.clamp((x - trackStart) / trackLen, 0.0, 1.0);
+            double span = Math.max(0.0, getMax() - getMin());
+            return getMin() + ratio * span;
+        }
+
+        @Override
+        protected void layoutChildren() {
+            double width = getWidth();
+            double height = getHeight();
+            double radius = THUMB_SIZE / 2.0;
+            double trackStart = radius;
+            double trackLen = Math.max(1.0, width - THUMB_SIZE);
+            double centerY = height / 2.0;
+
+            double lowCenterX = valueToX(getLowValue());
+            double highCenterX = valueToX(getHighValue());
+
+            track.resizeRelocate(trackStart, centerY - TRACK_HEIGHT / 2.0, trackLen, TRACK_HEIGHT);
+            rangeBar.resizeRelocate(
+                    lowCenterX,
+                    centerY - TRACK_HEIGHT / 2.0,
+                    Math.max(0.0, highCenterX - lowCenterX),
+                    TRACK_HEIGHT
+            );
+            lowThumb.resizeRelocate(lowCenterX - radius, centerY - radius, THUMB_SIZE, THUMB_SIZE);
+            highThumb.resizeRelocate(highCenterX - radius, centerY - radius, THUMB_SIZE, THUMB_SIZE);
+        }
+
+        @Override
+        protected double computeMinWidth(double height) {
+            return MIN_WIDTH;
+        }
+
+        @Override
+        protected double computePrefWidth(double height) {
+            return DEFAULT_PREF_WIDTH;
+        }
+
+        @Override
+        protected double computeMinHeight(double width) {
+            return CONTROL_HEIGHT;
+        }
+
+        @Override
+        protected double computePrefHeight(double width) {
+            return CONTROL_HEIGHT;
+        }
+
+        @Override
+        protected double computeMaxHeight(double width) {
+            return CONTROL_HEIGHT;
         }
     }
 }
