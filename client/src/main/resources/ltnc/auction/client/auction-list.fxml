@@ -2,7 +2,7 @@
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 
-<StackPane fx:id="root" xmlns:fx="http://javafx.com/fxml/1"
+<StackPane xmlns:fx="http://javafx.com/fxml/1"
            fx:controller="ltnc.auction.client.controller.AuctionListController"
            stylesheets="@/styles.css" styleClass="app-root">
     <VBox fx:id="authView" alignment="CENTER" spacing="18" styleClass="auth-wrap">

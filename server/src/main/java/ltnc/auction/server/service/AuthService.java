@@ -119,7 +119,14 @@ public final class AuthService {
      * Account administration API; called when account management is connected.
      */
     @SuppressWarnings("unused")
-    public synchronized void updateStatus(String username, UserStatus status) {
+    public synchronized void updateAccountStatus(
+            String adminToken, String username, UserStatus status) {
+        String adminRole = roleForSession(adminToken);
+        if (adminRole == null
+                || !securityConfig.canManageAccounts(UserRole.valueOf(adminRole))) {
+            throw new SecurityException("Only administrators can manage account status.");
+        }
+
         String normalizedUsername = normalize(username);
         Account account = accounts.get(normalizedUsername);
         if (account == null) {
