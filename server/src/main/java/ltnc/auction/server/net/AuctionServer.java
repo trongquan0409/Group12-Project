@@ -16,6 +16,7 @@ import java.util.concurrent.TimeUnit;
 import ltnc.auction.common.model.Art;
 import ltnc.auction.common.model.Auction;
 import ltnc.auction.server.persistence.AuctionStore;
+import ltnc.auction.server.scheduler.AuctionScheduler;
 import ltnc.auction.server.service.AuctionManager;
 import ltnc.auction.server.service.AuthService;
 import ltnc.auction.server.realtime.RealtimeClientRegistry;
@@ -43,9 +44,12 @@ public final class AuctionServer {
                 )
         );
 
+        AuctionScheduler scheduler = new AuctionScheduler();
+
         AuctionManager manager = AuctionManager.getInstance();
         manager.configureStore(new AuctionStore(dataFile));
 
+        scheduler.start(manager);
         RealtimeClientRegistry realtimeRegistry =
                 new RealtimeClientRegistry();
 
@@ -71,6 +75,7 @@ public final class AuctionServer {
                 Executors.newVirtualThreadPerTaskExecutor();
 
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            scheduler.close();
             pool.close();
             System.out.println("Auction server đã dừng.");
         }));
@@ -108,6 +113,7 @@ public final class AuctionServer {
             );
         } finally {
             pool.close();
+            scheduler.close();
         }
     }
 
