@@ -2,11 +2,17 @@
 package ltnc.auction.client.controller;
 
 import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.text.Collator;
 import java.text.NumberFormat;
 import java.time.ZoneId;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
@@ -22,11 +28,12 @@ import javafx.fxml.FXML;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.ChoiceBox;
+import javafx.scene.control.ComboBox;
 import javafx.scene.control.DatePicker;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.Label;
-import javafx.scene.control.ListView;
 import javafx.scene.control.PasswordField;
+import javafx.scene.control.Slider;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
@@ -56,6 +63,20 @@ public class AuctionListController {
     private static final NumberFormat CURRENCY_FORMAT =
             NumberFormat.getNumberInstance(Locale.forLanguageTag("vi-VN"));
 
+    private static final ThreadLocal<Collator> VIETNAMESE_COLLATOR = ThreadLocal.withInitial(() -> {
+        Collator collator = Collator.getInstance(Locale.forLanguageTag("vi-VN"));
+        collator.setStrength(Collator.SECONDARY);
+        return collator;
+    });
+
+    static final String FILTER_ALL = "Tất cả";
+    static final String SORT_DEFAULT = "Mặc định (Mới nhất)";
+    static final String SORT_NAME_ASC = "Tên: A → Z (Có số trước)";
+    static final String SORT_NAME_DESC = "Tên: Z → A (Ngược lại)";
+    static final String SORT_PRICE_ASC = "Giá: Tăng dần";
+    static final String SORT_PRICE_DESC = "Giá: Giảm dần";
+    static final long DEFAULT_SLIDER_MAX_PRICE = 100_000_000L;
+
     @FXML
     private VBox authView;
 
@@ -76,9 +97,6 @@ public class AuctionListController {
 
     @FXML
     private TextField registerUsername;
-
-    @FXML
-    private TextField auctionIdField;
 
     @FXML
     private TextField amountField;
@@ -128,6 +146,12 @@ public class AuctionListController {
 
     @FXML
     private DatePicker sellerEndDate;
+
+    @FXML
+    private ComboBox<String> sellerEndHour;
+
+    @FXML
+    private ComboBox<String> sellerEndMinute;
 
     @FXML
     private Label sellerMessage;
@@ -265,7 +289,94 @@ public class AuctionListController {
     private Label statusLabel;
 
     @FXML
-    private ListView<String> auctionList;
+    private TextField bidderSearchField;
+
+    @FXML
+    private ComboBox<String> bidderTypeFilter;
+
+    @FXML
+    private ComboBox<String> bidderStatusFilter;
+
+    @FXML
+    private TextField bidderMinPriceField;
+
+    @FXML
+    private TextField bidderMaxPriceField;
+
+    @FXML
+    private Slider bidderMinPriceSlider;
+
+    @FXML
+    private Slider bidderMaxPriceSlider;
+
+    @FXML
+    private ComboBox<String> bidderSortFilter;
+
+    @FXML
+    private TableView<Auction> bidderAuctionTable;
+
+    @FXML
+    private TableColumn<Auction, String> bidderNameColumn;
+
+    @FXML
+    private TableColumn<Auction, String> bidderTypeColumn;
+
+    @FXML
+    private TableColumn<Auction, String> bidderPriceColumn;
+
+    @FXML
+    private TableColumn<Auction, String> bidderStatusColumn;
+
+    @FXML
+    private TableColumn<Auction, String> bidderRemainingColumn;
+
+    // Chi tiết sản phẩm trong khu vực người đấu giá
+    @FXML
+    private Node bidderDetailPlaceholder;
+
+    @FXML
+    private Node bidderDetailContent;
+
+    @FXML
+    private Label bidderDetailItemName;
+
+    @FXML
+    private Label bidderDetailItemCategory;
+
+    @FXML
+    private Label bidderDetailDescription;
+
+    @FXML
+    private Label bidderDetailExtraInfo;
+
+    @FXML
+    private Label bidderDetailStartingPrice;
+
+    @FXML
+    private Label bidderDetailIncrement;
+
+    @FXML
+    private Label bidderDetailCurrentPrice;
+
+    @FXML
+    private Label bidderDetailLeader;
+
+    @FXML
+    private Label bidderDetailStatus;
+
+    @FXML
+    private Label bidderDetailCreatedAt;
+
+    @FXML
+    private Label bidderDetailEndAt;
+
+    @FXML
+    private Label bidderDetailRemainingTime;
+
+    private final List<Auction> allBidderAuctions = new ArrayList<>();
+    private Timeline bidderCountdownTimeline;
+    private long bidderSliderMaxBound = DEFAULT_SLIDER_MAX_PRICE;
+    private boolean syncingPriceControls;
 
     // Bảng lịch sử đặt giá
     @FXML
@@ -312,6 +423,8 @@ public class AuctionListController {
         sellerItemType.setValue("Điện tử");
         showFieldsForType(ItemType.ELECTRONICS);
 
+        configureEndTimeSelectors();
+
         // Cấu hình các cột trong bảng lịch sử đấu giá
         bidderColumn.setCellValueFactory(cell ->
                 new ReadOnlyStringWrapper(
@@ -339,30 +452,7 @@ public class AuctionListController {
             );
         });
 
-        // Xử lý khi người dùng chọn một phiên đấu giá
-        auctionList.getSelectionModel()
-                .selectedItemProperty()
-                .addListener((_, _, selected) -> {
-
-                    if (updatingAuctionList) {
-                        return;
-                    }
-
-                    if (selected == null) {
-                        selectedAuctionId = null;
-                        auctionIdField.clear();
-                        bidHistoryTable.getItems().clear();
-                        return;
-                    }
-
-                    String auctionId = selected.split(" \\| ", 2)[0];
-
-                    selectedAuctionId = auctionId;
-                    auctionIdField.setText(auctionId);
-
-                    loadBidHistory(auctionId);
-                });
-
+        configureBidderView();
         configureSellerTables();
 
         setVisible(registerView, false);
@@ -468,6 +558,7 @@ public class AuctionListController {
 
                             loadAuctions();
                             startHistoryAutoRefresh();
+                            startBidderCountdown();
                         }
 
                         default -> {
@@ -583,17 +674,36 @@ public class AuctionListController {
         // Dừng tự động cập nhật lịch sử
         stopHistoryAutoRefresh();
         stopSellerCountdown();
+        stopBidderCountdown();
 
         currentUsername = null;
         currentRole = null;
         selectedAuctionId = null;
 
-        auctionList.getSelectionModel().clearSelection();
-        auctionList.getItems().clear();
+        updatingAuctionList = true;
+        syncingPriceControls = true;
+        try {
+            allBidderAuctions.clear();
+            bidderAuctionTable.getSelectionModel().clearSelection();
+            bidderAuctionTable.getItems().clear();
+            bidderSearchField.clear();
+            bidderTypeFilter.setValue(FILTER_ALL);
+            bidderStatusFilter.setValue(FILTER_ALL);
+            bidderMinPriceField.clear();
+            bidderMaxPriceField.clear();
+            updateSliderMaxBound(DEFAULT_SLIDER_MAX_PRICE, true);
+            bidderMinPriceSlider.setValue(0);
+            bidderMaxPriceSlider.setValue(bidderSliderMaxBound);
+            bidderSortFilter.setValue(SORT_DEFAULT);
+            bidderAuctionTable.getSortOrder().clear();
+        } finally {
+            updatingAuctionList = false;
+            syncingPriceControls = false;
+        }
+        showBidderDetail(null);
 
         bidHistoryTable.getItems().clear();
 
-        auctionIdField.clear();
         amountField.clear();
 
         sellerProductTable.getItems().clear();
@@ -624,7 +734,13 @@ public class AuctionListController {
 
         String name = sellerItemName.getText().trim();
         String description = sellerItemDescription.getText().trim();
-        LocalDate endDate = sellerEndDate.getValue();
+        LocalDate endDate;
+        try {
+            endDate = readEndDate();
+        } catch (IllegalArgumentException exception) {
+            sellerMessage.setText(exception.getMessage());
+            return;
+        }
         if (name.isBlank() || endDate == null) {
             sellerMessage.setText("Vui lòng nhập tên sản phẩm và ngày kết thúc.");
             return;
@@ -674,7 +790,22 @@ public class AuctionListController {
             return;
         }
 
-        Instant endAt = endDate.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant().minusSeconds(1);
+        Instant endAt;
+        try {
+            endAt = parseEndAt(
+                    endDate,
+                    readComboText(sellerEndHour),
+                    readComboText(sellerEndMinute),
+                    ZoneId.systemDefault()
+            );
+        } catch (IllegalArgumentException exception) {
+            sellerMessage.setText(exception.getMessage());
+            return;
+        }
+        if (!endAt.isAfter(Instant.now())) {
+            sellerMessage.setText("Thời điểm kết thúc phải ở tương lai.");
+            return;
+        }
         sellerMessage.setText("Đang tạo phiên đấu giá...");
 
         Thread worker = new Thread(() -> {
@@ -763,7 +894,124 @@ public class AuctionListController {
         sellerStartingPrice.clear();
         sellerIncrement.clear();
         sellerEndDate.setValue(null);
+        if (sellerEndDate.getEditor() != null) {
+            sellerEndDate.getEditor().clear();
+        }
+        resetEndTimeSelectors();
         sellerItemType.setValue("Điện tử");
+    }
+
+    private void configureEndTimeSelectors() {
+        configureTimeComboBox(sellerEndHour, 23, "23");
+        configureTimeComboBox(sellerEndMinute, 59, "59");
+    }
+
+    private void configureTimeComboBox(
+            ComboBox<String> comboBox,
+            int max,
+            String defaultValue
+    ) {
+        comboBox.getItems().clear();
+        for (int i = 0; i <= max; i++) {
+            comboBox.getItems().add(String.format("%02d", i));
+        }
+        comboBox.setValue(defaultValue);
+        if (comboBox.getEditor() != null) {
+            comboBox.getEditor().setText(defaultValue);
+            comboBox.getEditor().focusedProperty().addListener((_, _, focused) -> {
+                if (!focused) {
+                    String raw = comboBox.getEditor().getText();
+                    if (raw != null && !raw.isBlank()) {
+                        try {
+                            int parsed = Integer.parseInt(raw.trim());
+                            if (parsed >= 0 && parsed <= max) {
+                                String formatted = String.format("%02d", parsed);
+                                comboBox.setValue(formatted);
+                                comboBox.getEditor().setText(formatted);
+                            }
+                        } catch (NumberFormatException ignored) {
+                            // Kiểm tra và báo lỗi cụ thể khi nhấn Tạo phiên
+                        }
+                    }
+                }
+            });
+        }
+    }
+
+    private void resetEndTimeSelectors() {
+        sellerEndHour.setValue("23");
+        if (sellerEndHour.getEditor() != null) {
+            sellerEndHour.getEditor().setText("23");
+        }
+        sellerEndMinute.setValue("59");
+        if (sellerEndMinute.getEditor() != null) {
+            sellerEndMinute.getEditor().setText("59");
+        }
+    }
+
+    private LocalDate readEndDate() {
+        if (sellerEndDate.getEditor() == null) {
+            return sellerEndDate.getValue();
+        }
+        String editorText = sellerEndDate.getEditor().getText().trim();
+        if (editorText.isEmpty()) {
+            sellerEndDate.setValue(null);
+            return null;
+        }
+        try {
+            LocalDate parsed = sellerEndDate.getConverter().fromString(editorText);
+            if (parsed != null) {
+                sellerEndDate.setValue(parsed);
+                return parsed;
+            }
+            return sellerEndDate.getValue();
+        } catch (DateTimeParseException exception) {
+            throw new IllegalArgumentException("Ngày kết thúc không hợp lệ.");
+        }
+    }
+
+    private static String readComboText(ComboBox<String> comboBox) {
+        if (comboBox.isEditable() && comboBox.getEditor() != null) {
+            return comboBox.getEditor().getText();
+        }
+        return comboBox.getValue();
+    }
+
+    static Instant parseEndAt(
+            LocalDate endDate,
+            String hourText,
+            String minuteText,
+            ZoneId zoneId
+    ) {
+        if (endDate == null) {
+            throw new IllegalArgumentException("Vui lòng chọn ngày kết thúc.");
+        }
+        int hour = parseTimePart(hourText, 23, "Giờ kết thúc");
+        int minute = parseTimePart(minuteText, 59, "Phút kết thúc");
+        LocalTime endTime = LocalTime.of(hour, minute);
+        return LocalDateTime.of(endDate, endTime)
+                .atZone(zoneId)
+                .toInstant();
+    }
+
+    private static int parseTimePart(String text, int max, String fieldLabel) {
+        String value = text == null ? "" : text.trim();
+        if (value.isEmpty()) {
+            throw new IllegalArgumentException(
+                    "Vui lòng chọn " + fieldLabel.toLowerCase(Locale.ROOT) + "."
+            );
+        }
+        try {
+            int parsed = Integer.parseInt(value);
+            if (parsed < 0 || parsed > max) {
+                throw new NumberFormatException();
+            }
+            return parsed;
+        } catch (NumberFormatException exception) {
+            throw new IllegalArgumentException(
+                    String.format("%s phải là số từ 00 đến %02d.", fieldLabel, max)
+            );
+        }
     }
 
     // =========================================================
@@ -1017,6 +1265,633 @@ public class AuctionListController {
     // TẢI DANH SÁCH PHIÊN ĐẤU GIÁ
     // =========================================================
 
+    private void configureBidderView() {
+        bidderNameColumn.setCellValueFactory(cell ->
+                text(cell.getValue().getItem() == null ? "" : cell.getValue().getItem().getName()));
+        bidderTypeColumn.setCellValueFactory(cell ->
+                text(cell.getValue().getItem() == null
+                        ? ""
+                        : typeLabel(cell.getValue().getItem().getCategory())));
+        bidderPriceColumn.setCellValueFactory(cell ->
+                text(money(cell.getValue().getHighestPrice())));
+        bidderStatusColumn.setCellValueFactory(cell ->
+                text(statusText(cell.getValue().getStatus())));
+        bidderRemainingColumn.setCellValueFactory(cell ->
+                text(formatRemainingTime(cell.getValue().getEndAt(), cell.getValue().getStatus())));
+
+        bidderNameColumn.setComparator(AuctionListController::compareItemNames);
+        bidderPriceColumn.setComparator(AuctionListController::compareFormattedPrices);
+
+        bidderTypeFilter.getItems().setAll(
+                FILTER_ALL,
+                "Điện tử",
+                "Nghệ thuật",
+                "Phương tiện"
+        );
+        bidderTypeFilter.setValue(FILTER_ALL);
+        bidderTypeFilter.valueProperty().addListener((_, _, _) -> filterBidderAuctions());
+
+        bidderStatusFilter.getItems().setAll(
+                FILTER_ALL,
+                "Đang diễn ra",
+                "Đang mở",
+                "Đã kết thúc",
+                "Đã thanh toán",
+                "Đã hủy"
+        );
+        bidderStatusFilter.setValue(FILTER_ALL);
+        bidderStatusFilter.valueProperty().addListener((_, _, _) -> filterBidderAuctions());
+
+        bidderSortFilter.getItems().setAll(
+                SORT_DEFAULT,
+                SORT_NAME_ASC,
+                SORT_NAME_DESC,
+                SORT_PRICE_ASC,
+                SORT_PRICE_DESC
+        );
+        bidderSortFilter.setValue(SORT_DEFAULT);
+        bidderSortFilter.valueProperty().addListener((_, _, _) -> {
+            if (!updatingAuctionList) {
+                bidderAuctionTable.getSortOrder().clear();
+                filterBidderAuctions();
+            }
+        });
+
+        bidderSearchField.textProperty().addListener((_, _, _) -> filterBidderAuctions());
+        configurePriceSliders();
+
+        bidderAuctionTable.getSelectionModel()
+                .selectedItemProperty()
+                .addListener((_, _, selected) -> {
+                    if (updatingAuctionList) {
+                        return;
+                    }
+
+                    if (selected == null) {
+                        selectedAuctionId = null;
+                        bidHistoryTable.getItems().clear();
+                        showBidderDetail(null);
+                        return;
+                    }
+
+                    selectedAuctionId = selected.getId();
+                    showBidderDetail(selected);
+                    loadBidHistory(selected.getId(), true);
+                });
+
+        showBidderDetail(null);
+    }
+
+    @FXML
+    private void filterBidderAuctions() {
+        applyBidderFilter(true);
+    }
+
+    @FXML
+    private void resetBidderFilters() {
+        updatingAuctionList = true;
+        syncingPriceControls = true;
+        try {
+            bidderSearchField.clear();
+            bidderTypeFilter.setValue(FILTER_ALL);
+            bidderStatusFilter.setValue(FILTER_ALL);
+            bidderMinPriceField.clear();
+            bidderMaxPriceField.clear();
+            updateSliderMaxBound(computeSliderMaxBound(allBidderAuctions), true);
+            bidderMinPriceSlider.setValue(0);
+            bidderMaxPriceSlider.setValue(bidderSliderMaxBound);
+            bidderSortFilter.setValue(SORT_DEFAULT);
+            bidderAuctionTable.getSortOrder().clear();
+        } finally {
+            updatingAuctionList = false;
+            syncingPriceControls = false;
+        }
+        applyBidderFilter(true);
+    }
+
+    private void applyBidderFilter(boolean updateStatusMessage) {
+        BigDecimal minPrice;
+        BigDecimal maxPrice;
+        try {
+            minPrice = parsePriceFilter(bidderMinPriceField.getText());
+            maxPrice = parsePriceFilter(bidderMaxPriceField.getText());
+            if (minPrice != null && maxPrice != null && minPrice.compareTo(maxPrice) > 0) {
+                throw new IllegalArgumentException("Giá tối thiểu không được lớn hơn giá tối đa.");
+            }
+        } catch (IllegalArgumentException exception) {
+            if ("BIDDER".equals(currentRole)) {
+                statusLabel.setText(exception.getMessage());
+            }
+            return;
+        }
+
+        String keyword = bidderSearchField.getText();
+        String type = bidderTypeFilter.getValue();
+        String status = bidderStatusFilter.getValue();
+        String sortOption = bidderSortFilter.getValue();
+        List<Auction> filtered = allBidderAuctions.stream()
+                .filter(auction -> matchesBidderFilter(auction, keyword, type, status, minPrice, maxPrice))
+                .sorted(bidderAuctionComparator(sortOption))
+                .toList();
+
+        String previousSelectedId = selectedAuctionId;
+        Auction restoredSelection = null;
+
+        updatingAuctionList = true;
+        try {
+            bidderAuctionTable.getItems().setAll(filtered);
+            if (!bidderAuctionTable.getSortOrder().isEmpty()) {
+                bidderAuctionTable.sort();
+            }
+            if (previousSelectedId != null) {
+                for (Auction auction : filtered) {
+                    if (previousSelectedId.equals(auction.getId())) {
+                        bidderAuctionTable.getSelectionModel().select(auction);
+                        restoredSelection = auction;
+                        break;
+                    }
+                }
+            }
+            if (restoredSelection == null) {
+                bidderAuctionTable.getSelectionModel().clearSelection();
+                selectedAuctionId = null;
+                bidHistoryTable.getItems().clear();
+                showBidderDetail(null);
+            } else {
+                selectedAuctionId = restoredSelection.getId();
+                showBidderDetail(restoredSelection);
+            }
+        } finally {
+            updatingAuctionList = false;
+        }
+
+        if (updateStatusMessage && "BIDDER".equals(currentRole)) {
+            if (allBidderAuctions.isEmpty()) {
+                statusLabel.setText("Hiện chưa có phiên đấu giá.");
+            } else if (filtered.isEmpty()) {
+                statusLabel.setText("Không tìm thấy phiên đấu giá phù hợp.");
+            } else {
+                statusLabel.setText("Hiển thị " + filtered.size() + "/" + allBidderAuctions.size() + " phiên.");
+            }
+        }
+    }
+
+    static boolean matchesBidderFilter(Auction auction, String keyword, String statusLabelText) {
+        return matchesBidderFilter(auction, keyword, FILTER_ALL, statusLabelText, null, null);
+    }
+
+    static boolean matchesBidderFilter(
+            Auction auction,
+            String keyword,
+            String typeLabelText,
+            String statusLabelText,
+            BigDecimal minPrice,
+            BigDecimal maxPrice
+    ) {
+        if (auction == null) {
+            return false;
+        }
+        if (typeLabelText != null && !typeLabelText.isBlank() && !FILTER_ALL.equals(typeLabelText)) {
+            ItemType itemType = auction.getItem() == null ? null : auction.getItem().getCategory();
+            if (!typeLabelText.equals(typeLabel(itemType))) {
+                return false;
+            }
+        }
+        if (statusLabelText != null && !statusLabelText.isBlank() && !FILTER_ALL.equals(statusLabelText)) {
+            if (!statusLabelText.equals(statusText(auction.getStatus()))) {
+                return false;
+            }
+        }
+        BigDecimal currentPrice = auction.getHighestPrice();
+        if (minPrice != null && (currentPrice == null || currentPrice.compareTo(minPrice) < 0)) {
+            return false;
+        }
+        if (maxPrice != null && (currentPrice == null || currentPrice.compareTo(maxPrice) > 0)) {
+            return false;
+        }
+        String normalizedKeyword = keyword == null ? "" : keyword.trim().toLowerCase(Locale.ROOT);
+        if (normalizedKeyword.isEmpty()) {
+            return true;
+        }
+        String auctionId = auction.getId() == null ? "" : auction.getId().toLowerCase(Locale.ROOT);
+        String itemName = auction.getItem() == null || auction.getItem().getName() == null
+                ? ""
+                : auction.getItem().getName().toLowerCase(Locale.ROOT);
+        return auctionId.contains(normalizedKeyword) || itemName.contains(normalizedKeyword);
+    }
+
+    static BigDecimal parsePriceFilter(String rawText) {
+        if (rawText == null || rawText.isBlank()) {
+            return null;
+        }
+        String trimmed = rawText.trim().replace(" ", "");
+        String normalized;
+        if (trimmed.matches("\\d+")) {
+            normalized = trimmed;
+        } else if (trimmed.matches("\\d{1,3}(\\.\\d{3})+")) {
+            normalized = trimmed.replace(".", "");
+        } else if (trimmed.matches("\\d{1,3}(,\\d{3})+")) {
+            normalized = trimmed.replace(",", "");
+        } else {
+            normalized = trimmed;
+        }
+        try {
+            BigDecimal value = new BigDecimal(normalized);
+            if (value.signum() < 0) {
+                throw new NumberFormatException();
+            }
+            return value;
+        } catch (NumberFormatException exception) {
+            throw new IllegalArgumentException("Khoảng giá lọc phải là số không âm hợp lệ.");
+        }
+    }
+
+    private void configurePriceSliders() {
+        syncingPriceControls = true;
+        try {
+            updateSliderMaxBound(DEFAULT_SLIDER_MAX_PRICE, true);
+            bidderMinPriceSlider.setValue(0);
+            bidderMaxPriceSlider.setValue(bidderSliderMaxBound);
+        } finally {
+            syncingPriceControls = false;
+        }
+
+        bidderMinPriceSlider.valueProperty().addListener((_, _, newValue) -> {
+            if (syncingPriceControls || updatingAuctionList) {
+                return;
+            }
+            long snapped = snapPriceToStep(newValue.doubleValue(), bidderSliderMaxBound);
+            long maxSliderVal = Math.round(bidderMaxPriceSlider.getValue());
+            if (snapped > maxSliderVal) {
+                snapped = maxSliderVal;
+            }
+            syncingPriceControls = true;
+            try {
+                bidderMinPriceSlider.setValue(snapped);
+                if (snapped <= 0) {
+                    bidderMinPriceField.clear();
+                } else {
+                    bidderMinPriceField.setText(CURRENCY_FORMAT.format(snapped));
+                }
+            } finally {
+                syncingPriceControls = false;
+            }
+            filterBidderAuctions();
+        });
+
+        bidderMaxPriceSlider.valueProperty().addListener((_, _, newValue) -> {
+            if (syncingPriceControls || updatingAuctionList) {
+                return;
+            }
+            long snapped = snapPriceToStep(newValue.doubleValue(), bidderSliderMaxBound);
+            long minSliderVal = Math.round(bidderMinPriceSlider.getValue());
+            if (snapped < minSliderVal) {
+                snapped = minSliderVal;
+            }
+            syncingPriceControls = true;
+            try {
+                bidderMaxPriceSlider.setValue(snapped);
+                if (snapped >= bidderSliderMaxBound) {
+                    bidderMaxPriceField.clear();
+                } else {
+                    bidderMaxPriceField.setText(CURRENCY_FORMAT.format(snapped));
+                }
+            } finally {
+                syncingPriceControls = false;
+            }
+            filterBidderAuctions();
+        });
+
+        bidderMinPriceField.textProperty().addListener((_, _, text) -> {
+            if (syncingPriceControls || updatingAuctionList) {
+                return;
+            }
+            syncPriceSliderFromMinField(text);
+            filterBidderAuctions();
+        });
+
+        bidderMaxPriceField.textProperty().addListener((_, _, text) -> {
+            if (syncingPriceControls || updatingAuctionList) {
+                return;
+            }
+            syncPriceSliderFromMaxField(text);
+            filterBidderAuctions();
+        });
+    }
+
+    private void syncPriceSliderFromMinField(String text) {
+        try {
+            BigDecimal parsed = parsePriceFilter(text);
+            syncingPriceControls = true;
+            try {
+                if (parsed == null) {
+                    bidderMinPriceSlider.setValue(0);
+                } else {
+                    long value = parsed.min(BigDecimal.valueOf(100_000_000_000L)).longValue();
+                    if (value > bidderSliderMaxBound) {
+                        boolean maxUnlimited = bidderMaxPriceField.getText() == null
+                                || bidderMaxPriceField.getText().isBlank();
+                        updateSliderMaxBound(roundUpNicePrice(value), maxUnlimited);
+                    }
+                    bidderMinPriceSlider.setValue(Math.clamp(value, 0L, bidderSliderMaxBound));
+                }
+            } finally {
+                syncingPriceControls = false;
+            }
+        } catch (IllegalArgumentException ignored) {
+            // Thông báo lỗi sẽ được hiển thị ở statusLabel trong applyBidderFilter
+        }
+    }
+
+    private void syncPriceSliderFromMaxField(String text) {
+        try {
+            BigDecimal parsed = parsePriceFilter(text);
+            syncingPriceControls = true;
+            try {
+                if (parsed == null) {
+                    bidderMaxPriceSlider.setValue(bidderSliderMaxBound);
+                } else {
+                    long value = parsed.min(BigDecimal.valueOf(100_000_000_000L)).longValue();
+                    if (value > bidderSliderMaxBound) {
+                        updateSliderMaxBound(roundUpNicePrice(value), false);
+                    }
+                    bidderMaxPriceSlider.setValue(Math.clamp(value, 0L, bidderSliderMaxBound));
+                }
+            } finally {
+                syncingPriceControls = false;
+            }
+        } catch (IllegalArgumentException ignored) {
+            // Thông báo lỗi sẽ được hiển thị ở statusLabel trong applyBidderFilter
+        }
+    }
+
+    private void syncSliderRangeWithLoadedAuctions(long loadedMaxBound) {
+        long targetMax = loadedMaxBound;
+        Long typedMin = parsePriceOrNull(bidderMinPriceField.getText());
+        Long typedMax = parsePriceOrNull(bidderMaxPriceField.getText());
+        if (typedMin != null && typedMin > targetMax) {
+            targetMax = roundUpNicePrice(typedMin);
+        }
+        if (typedMax != null && typedMax > targetMax) {
+            targetMax = roundUpNicePrice(typedMax);
+        }
+
+        boolean maxUnlimited = bidderMaxPriceField.getText() == null
+                || bidderMaxPriceField.getText().isBlank();
+        syncingPriceControls = true;
+        try {
+            updateSliderMaxBound(targetMax, maxUnlimited);
+            if (typedMin == null) {
+                bidderMinPriceSlider.setValue(0);
+            } else {
+                bidderMinPriceSlider.setValue(Math.clamp(typedMin, 0L, bidderSliderMaxBound));
+            }
+            if (!maxUnlimited && typedMax != null) {
+                bidderMaxPriceSlider.setValue(Math.clamp(typedMax, 0L, bidderSliderMaxBound));
+            }
+        } finally {
+            syncingPriceControls = false;
+        }
+    }
+
+    private static Long parsePriceOrNull(String text) {
+        try {
+            BigDecimal parsed = parsePriceFilter(text);
+            return parsed == null
+                    ? null
+                    : parsed.min(BigDecimal.valueOf(100_000_000_000L)).longValue();
+        } catch (IllegalArgumentException exception) {
+            return null;
+        }
+    }
+
+    private void updateSliderMaxBound(long maxBound, boolean resetMaxSliderToTop) {
+        bidderSliderMaxBound = Math.max(1_000_000L, maxBound);
+        bidderMinPriceSlider.setMax(bidderSliderMaxBound);
+        bidderMaxPriceSlider.setMax(bidderSliderMaxBound);
+        double step = computePriceStep(bidderSliderMaxBound);
+        bidderMinPriceSlider.setBlockIncrement(step);
+        bidderMaxPriceSlider.setBlockIncrement(step);
+        if (resetMaxSliderToTop) {
+            bidderMaxPriceSlider.setValue(bidderSliderMaxBound);
+        }
+    }
+
+    static long computeSliderMaxBound(List<Auction> auctions) {
+        if (auctions == null || auctions.isEmpty()) {
+            return DEFAULT_SLIDER_MAX_PRICE;
+        }
+        BigDecimal maxPrice = BigDecimal.ZERO;
+        for (Auction auction : auctions) {
+            if (auction != null && auction.getHighestPrice() != null
+                    && auction.getHighestPrice().compareTo(maxPrice) > 0) {
+                maxPrice = auction.getHighestPrice();
+            }
+        }
+        if (maxPrice.signum() <= 0) {
+            return DEFAULT_SLIDER_MAX_PRICE;
+        }
+        long maxLong = maxPrice.min(BigDecimal.valueOf(100_000_000_000L)).longValue();
+        return roundUpNicePrice(maxLong);
+    }
+
+    static long roundUpNicePrice(long value) {
+        if (value <= 1_000_000L) {
+            long unit = 100_000L;
+            return Math.max(1_000_000L, ((value + unit - 1) / unit) * unit);
+        }
+        long unit;
+        if (value <= 10_000_000L) {
+            unit = 1_000_000L;
+        } else if (value <= 100_000_000L) {
+            unit = 5_000_000L;
+        } else if (value <= 1_000_000_000L) {
+            unit = 50_000_000L;
+        } else {
+            unit = 100_000_000L;
+        }
+        return ((value + unit - 1) / unit) * unit;
+    }
+
+    static long computePriceStep(long maxBound) {
+        if (maxBound <= 1_000_000L) {
+            return 10_000L;
+        }
+        if (maxBound <= 10_000_000L) {
+            return 100_000L;
+        }
+        if (maxBound <= 100_000_000L) {
+            return 1_000_000L;
+        }
+        if (maxBound <= 1_000_000_000L) {
+            return 5_000_000L;
+        }
+        return 10_000_000L;
+    }
+
+    static long snapPriceToStep(double value, long maxBound) {
+        if (value <= 0) {
+            return 0L;
+        }
+        if (value >= maxBound) {
+            return maxBound;
+        }
+        long step = computePriceStep(maxBound);
+        long snapped = Math.round(value / step) * step;
+        return Math.clamp(snapped, 0L, maxBound);
+    }
+
+    static Comparator<Auction> bidderAuctionComparator(String sortOption) {
+        Comparator<Auction> newestFirst = Comparator.comparing(
+                Auction::getStartAt,
+                Comparator.nullsLast(Comparator.reverseOrder())
+        );
+        if (sortOption == null) {
+            return newestFirst;
+        }
+        return switch (sortOption) {
+            case SORT_NAME_ASC -> Comparator
+                    .comparing(AuctionListController::extractItemName, AuctionListController::compareItemNames)
+                    .thenComparing(newestFirst);
+            case SORT_NAME_DESC -> Comparator
+                    .comparing(
+                            AuctionListController::extractItemName,
+                            ((Comparator<String>) AuctionListController::compareItemNames).reversed()
+                    )
+                    .thenComparing(newestFirst);
+            case SORT_PRICE_ASC -> Comparator
+                    .comparing(Auction::getHighestPrice, Comparator.nullsLast(BigDecimal::compareTo))
+                    .thenComparing(newestFirst);
+            case SORT_PRICE_DESC -> Comparator
+                    .comparing(Auction::getHighestPrice, Comparator.nullsLast(Comparator.reverseOrder()))
+                    .thenComparing(newestFirst);
+            default -> newestFirst;
+        };
+    }
+
+    private static String extractItemName(Auction auction) {
+        if (auction == null || auction.getItem() == null || auction.getItem().getName() == null) {
+            return "";
+        }
+        return auction.getItem().getName();
+    }
+
+    static int compareItemNames(String left, String right) {
+        String a = left == null ? "" : left.trim();
+        String b = right == null ? "" : right.trim();
+        boolean aHasDigit = containsDigit(a);
+        boolean bHasDigit = containsDigit(b);
+        if (aHasDigit != bHasDigit) {
+            return aHasDigit ? -1 : 1;
+        }
+
+        int indexA = 0;
+        int indexB = 0;
+        Collator collator = VIETNAMESE_COLLATOR.get();
+        while (indexA < a.length() && indexB < b.length()) {
+            boolean digitA = isAsciiDigit(a.charAt(indexA));
+            boolean digitB = isAsciiDigit(b.charAt(indexB));
+            int endA = nextChunkEnd(a, indexA, digitA);
+            int endB = nextChunkEnd(b, indexB, digitB);
+            String chunkA = a.substring(indexA, endA);
+            String chunkB = b.substring(indexB, endB);
+
+            int cmp;
+            if (digitA && digitB) {
+                cmp = new BigInteger(chunkA).compareTo(new BigInteger(chunkB));
+                if (cmp == 0) {
+                    cmp = Integer.compare(chunkA.length(), chunkB.length());
+                }
+            } else if (digitA != digitB) {
+                cmp = digitA ? -1 : 1;
+            } else {
+                cmp = collator.compare(chunkA, chunkB);
+            }
+            if (cmp != 0) {
+                return cmp;
+            }
+            indexA = endA;
+            indexB = endB;
+        }
+        return Integer.compare(a.length(), b.length());
+    }
+
+    private static int compareFormattedPrices(String left, String right) {
+        BigDecimal a = parseFormattedMoney(left);
+        BigDecimal b = parseFormattedMoney(right);
+        if (a == null && b == null) {
+            return 0;
+        }
+        if (a == null) {
+            return -1;
+        }
+        if (b == null) {
+            return 1;
+        }
+        return a.compareTo(b);
+    }
+
+    private static BigDecimal parseFormattedMoney(String formatted) {
+        if (formatted == null || formatted.isBlank()) {
+            return null;
+        }
+        try {
+            return new BigDecimal(formatted.trim().replace(".", "").replace(",", "."));
+        } catch (NumberFormatException exception) {
+            return null;
+        }
+    }
+
+    private static boolean containsDigit(String value) {
+        for (int i = 0; i < value.length(); i++) {
+            if (isAsciiDigit(value.charAt(i))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean isAsciiDigit(char ch) {
+        return ch >= '0' && ch <= '9';
+    }
+
+    private static int nextChunkEnd(String value, int start, boolean digits) {
+        int index = start;
+        while (index < value.length() && isAsciiDigit(value.charAt(index)) == digits) {
+            index++;
+        }
+        return index;
+    }
+
+    private void showBidderDetail(Auction auction) {
+        if (auction == null || auction.getItem() == null) {
+            setVisible(bidderDetailPlaceholder, true);
+            setVisible(bidderDetailContent, false);
+            return;
+        }
+
+        setVisible(bidderDetailPlaceholder, false);
+        setVisible(bidderDetailContent, true);
+
+        bidderDetailItemName.setText(auction.getItem().getName());
+        bidderDetailItemCategory.setText(typeLabel(auction.getItem().getCategory()));
+        String desc = auction.getItem().getDescription();
+        bidderDetailDescription.setText(desc == null || desc.isBlank() ? "(Không có mô tả)" : desc);
+        bidderDetailExtraInfo.setText(auction.getItem().getInfo());
+
+        bidderDetailStartingPrice.setText(money(auction.getStartingPrice()) + " VNĐ");
+        bidderDetailIncrement.setText(money(auction.getIncrement()) + " VNĐ");
+        bidderDetailCurrentPrice.setText(money(auction.getHighestPrice()) + " VNĐ");
+        String leader = auction.getHighestBidderId();
+        bidderDetailLeader.setText(leader == null || leader.isBlank() ? "Chưa có lượt đặt" : leader);
+        bidderDetailStatus.setText(statusText(auction.getStatus()));
+        bidderDetailCreatedAt.setText(time(auction.getStartAt()));
+        bidderDetailEndAt.setText(time(auction.getEndAt()));
+        bidderDetailRemainingTime.setText(
+                formatRemainingTime(auction.getEndAt(), auction.getStatus()));
+    }
+
+    @FXML
     private void loadAuctions() {
 
         Thread worker = new Thread(() -> {
@@ -1044,71 +1919,39 @@ public class AuctionListController {
                         return;
                     }
 
-                    // Lưu lại phiên đang chọn trước khi tải lại
-                    String previousSelectedId = selectedAuctionId;
+                    List<Auction> auctions = response.auctions().stream()
+                            .sorted(Comparator.comparing(Auction::getStartAt,
+                                    Comparator.nullsLast(Comparator.reverseOrder())))
+                            .toList();
 
-                    updatingAuctionList = true;
+                    allBidderAuctions.clear();
+                    allBidderAuctions.addAll(auctions);
+                    syncSliderRangeWithLoadedAuctions(computeSliderMaxBound(auctions));
+                    applyBidderFilter(false);
 
-                    try {
-
-                        auctionList.getItems().clear();
-
-                        for (Auction auction : response.auctions()) {
-
-                            auctionList.getItems().add(
-                                    auction.getId()
-                                            + " | "
-                                            + auction.getItem().getName()
-                                            + " | "
-                                            + auction.getStatus()
-                                            + " | "
-                                            + auction.getHighestPrice()
-                            );
-                        }
-
-                        // Khôi phục lựa chọn cũ nếu phiên vẫn còn
-                        if (previousSelectedId != null) {
-
-                            for (int i = 0;
-                                 i < auctionList.getItems().size();
-                                 i++) {
-
-                                String item = auctionList.getItems().get(i);
-
-                                String id = item.split(" \\| ", 2)[0];
-
-                                if (id.equals(previousSelectedId)) {
-                                    auctionList.getSelectionModel()
-                                            .select(i);
-                                    break;
-                                }
-                            }
-                        }
-
-                    } finally {
-                        updatingAuctionList = false;
-                    }
-
-                    if (auctionList.getItems().isEmpty()) {
-
-                        selectedAuctionId = null;
-                        auctionIdField.clear();
-                        bidHistoryTable.getItems().clear();
+                    if (allBidderAuctions.isEmpty()) {
 
                         statusLabel.setText(
                                 "Hiện chưa có phiên đấu giá."
                         );
 
+                    } else if (bidderAuctionTable.getItems().isEmpty()) {
+
+                        statusLabel.setText(
+                                "Không tìm thấy phiên đấu giá phù hợp bộ lọc."
+                        );
+
                     } else {
 
                         statusLabel.setText(
-                                "Đã tải danh sách phiên đấu giá từ server."
+                                "Đã tải " + allBidderAuctions.size()
+                                        + " phiên đấu giá từ server."
                         );
 
                         // Nếu phiên đang chọn vẫn tồn tại,
                         // tiếp tục tải lịch sử của phiên đó
                         if (selectedAuctionId != null) {
-                            loadBidHistory(selectedAuctionId);
+                            loadBidHistory(selectedAuctionId, false);
                         }
                     }
                 });
@@ -1132,7 +1975,7 @@ public class AuctionListController {
     // TẢI LỊCH SỬ ĐẶT GIÁ CỦA MỘT PHIÊN
     // =========================================================
 
-    private void loadBidHistory(String auctionId) {
+    private void loadBidHistory(String auctionId, boolean updateStatus) {
 
         if (auctionId == null || auctionId.isBlank()) {
             return;
@@ -1171,7 +2014,9 @@ public class AuctionListController {
                     if (!response.isSuccess()) {
 
                         bidHistoryTable.getItems().clear();
-                        statusLabel.setText(response.getMessage());
+                        if (updateStatus) {
+                            statusLabel.setText(response.getMessage());
+                        }
 
                         return;
                     }
@@ -1182,19 +2027,21 @@ public class AuctionListController {
                             bids == null ? List.of() : bids
                     );
 
-                    if (bids == null || bids.isEmpty()) {
+                    if (updateStatus) {
+                        if (bids == null || bids.isEmpty()) {
 
-                        statusLabel.setText(
-                                "Phiên đấu giá chưa có lượt đặt giá."
-                        );
+                            statusLabel.setText(
+                                    "Phiên đấu giá chưa có lượt đặt giá."
+                            );
 
-                    } else {
+                        } else {
 
-                        statusLabel.setText(
-                                "Đã tải lịch sử đặt giá: "
-                                        + bids.size()
-                                        + " lượt."
-                        );
+                            statusLabel.setText(
+                                    "Đã tải lịch sử đặt giá: "
+                                            + bids.size()
+                                            + " lượt."
+                            );
+                        }
                     }
                 });
 
@@ -1202,7 +2049,7 @@ public class AuctionListController {
 
                 Platform.runLater(() -> {
 
-                    if (auctionId.equals(selectedAuctionId)) {
+                    if (updateStatus && auctionId.equals(selectedAuctionId)) {
 
                         statusLabel.setText(
                                 "Không thể tải lịch sử đặt giá."
@@ -1237,7 +2084,7 @@ public class AuctionListController {
                             if (selectedAuctionId != null
                                     && "BIDDER".equals(currentRole)) {
 
-                                loadBidHistory(selectedAuctionId);
+                                loadBidHistory(selectedAuctionId, false);
                             }
                         }
                 )
@@ -1259,6 +2106,32 @@ public class AuctionListController {
         }
     }
 
+    private void startBidderCountdown() {
+        stopBidderCountdown();
+        bidderCountdownTimeline = new Timeline(
+                new KeyFrame(
+                        Duration.seconds(1),
+                        _ -> {
+                            bidderAuctionTable.refresh();
+                            Auction selected = bidderAuctionTable.getSelectionModel().getSelectedItem();
+                            if (selected != null) {
+                                bidderDetailRemainingTime.setText(
+                                        formatRemainingTime(selected.getEndAt(), selected.getStatus()));
+                            }
+                        }
+                )
+        );
+        bidderCountdownTimeline.setCycleCount(Timeline.INDEFINITE);
+        bidderCountdownTimeline.play();
+    }
+
+    private void stopBidderCountdown() {
+        if (bidderCountdownTimeline != null) {
+            bidderCountdownTimeline.stop();
+            bidderCountdownTimeline = null;
+        }
+    }
+
     // =========================================================
     // ĐẶT GIÁ
     // =========================================================
@@ -1276,13 +2149,13 @@ public class AuctionListController {
             return;
         }
 
-        String auctionId = auctionIdField.getText().trim();
+        String auctionId = selectedAuctionId == null ? "" : selectedAuctionId.trim();
         String amountText = amountField.getText().trim();
 
         if (auctionId.isEmpty()) {
 
             statusLabel.setText(
-                    "Vui lòng chọn hoặc nhập mã phiên."
+                    "Vui lòng chọn một phiên đấu giá từ danh sách."
             );
 
             return;
@@ -1342,7 +2215,7 @@ public class AuctionListController {
                         loadAuctions();
 
                         // Cập nhật lịch sử đặt giá ngay lập tức
-                        loadBidHistory(auctionId);
+                        loadBidHistory(auctionId, false);
                     }
                 });
 

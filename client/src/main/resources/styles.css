@@ -126,7 +126,7 @@
 }
 
 .form-card {
-    -fx-pref-width: 360px;
+    -fx-pref-width: 430px;
 }
 
 .bid-card {
@@ -178,4 +178,26 @@
     -fx-background-color: transparent;
     -fx-background: transparent;
     -fx-border-color: transparent;
+}
+
+.clean-split-pane {
+    -fx-background-color: transparent;
+    -fx-padding: 0;
+}
+
+.clean-split-pane > .split-pane-divider {
+    -fx-background-color: #e2e7ef;
+    -fx-background-insets: 0 3px 0 3px;
+    -fx-padding: 0 4px 0 4px;
+    -fx-cursor: h-resize;
+}
+
+.clean-split-pane > .split-pane-divider:hover {
+    -fx-background-color: #245ca6;
+}
+
+.clean-split-pane:vertical > .split-pane-divider {
+    -fx-background-insets: 3px 0 3px 0;
+    -fx-padding: 4px 0 4px 0;
+    -fx-cursor: v-resize;
 }
