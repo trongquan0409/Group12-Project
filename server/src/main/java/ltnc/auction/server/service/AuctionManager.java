@@ -429,26 +429,7 @@ public final class AuctionManager {
     }
 
     private boolean refreshStatus(Auction auction) {
-        Instant now = Instant.now();
-
-        AuctionStatus oldStatus = auction.getStatus();
-
-        if (oldStatus == AuctionStatus.OPEN
-                && !now.isBefore(auction.getStartAt())) {
-
-            auction.setStatus(AuctionStatus.RUNNING);
-        }
-
-        if ((auction.getStatus()
-                == AuctionStatus.RUNNING
-                || auction.getStatus()
-                == AuctionStatus.OPEN)
-                && !now.isBefore(auction.getEndAt())) {
-
-            auction.setStatus(AuctionStatus.FINISHED);
-        }
-
-        return oldStatus != auction.getStatus();
+       return auction.refreshStatus(Instant.now());
     }
 
     private synchronized void save() {
