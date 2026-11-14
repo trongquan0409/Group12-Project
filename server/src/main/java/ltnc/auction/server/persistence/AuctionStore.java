@@ -11,7 +11,9 @@ import java.util.List;
 
 import ltnc.auction.common.model.Auction;
 
-/** Serialization and file I/O repository for auction data. */
+/**
+ * Serialization and file I/O repository for auction data.
+ */
 public final class AuctionStore {
     private final Path file;
 

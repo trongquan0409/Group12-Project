@@ -9,12 +9,17 @@ import java.nio.file.Path;
 import java.time.Instant;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 import ltnc.auction.common.model.Art;
 import ltnc.auction.common.model.Auction;
 import ltnc.auction.server.persistence.AuctionStore;
 import ltnc.auction.server.service.AuctionManager;
 import ltnc.auction.server.service.AuthService;
+import ltnc.auction.server.realtime.RealtimeClientRegistry;
+import ltnc.auction.server.realtime.SocketAuctionObserver;
 
 public final class AuctionServer {
 
@@ -40,6 +45,23 @@ public final class AuctionServer {
 
         AuctionManager manager = AuctionManager.getInstance();
         manager.configureStore(new AuctionStore(dataFile));
+
+        RealtimeClientRegistry realtimeRegistry =
+                new RealtimeClientRegistry();
+
+        manager.addObserver(
+                new SocketAuctionObserver(realtimeRegistry)
+        );
+
+        ScheduledExecutorService scheduler =
+                Executors.newSingleThreadScheduledExecutor();
+
+        scheduler.scheduleAtFixedRate(
+                manager::refreshStatuses,
+                0,
+                1,
+                TimeUnit.SECONDS
+        );
 
         initializeSampleAuction(manager);
 
@@ -73,7 +95,8 @@ public final class AuctionServer {
                         new ClientHandler(
                                 clientSocket,
                                 manager,
-                                authService
+                                authService,
+                                realtimeRegistry
                         )
                 );
             }
