@@ -1,4 +1,3 @@
-
 package ltnc.auction.server.service;
 
 import java.math.BigDecimal;
@@ -15,14 +14,16 @@ import java.util.concurrent.locks.ReentrantLock;
 import ltnc.auction.common.event.AuctionEvent;
 import ltnc.auction.common.exception.AuctionClosedException;
 import ltnc.auction.common.exception.InvalidBidException;
+import ltnc.auction.common.factory.DefaultItemFactory;
+import ltnc.auction.common.factory.ItemFactory;
 import ltnc.auction.common.model.Auction;
 import ltnc.auction.common.model.AuctionStatus;
 import ltnc.auction.common.model.Bid;
-import ltnc.auction.common.protocol.CreateItemRequest;
 import ltnc.auction.common.model.Item;
 import ltnc.auction.common.factory.DefaultItemFactory;
 import ltnc.auction.common.factory.ItemFactory;
 import ltnc.auction.common.util.Validators;
+import ltnc.auction.common.protocol.CreateItemRequest;
 import ltnc.auction.server.observer.AuctionObserver;
 import ltnc.auction.server.persistence.AuctionStore;
 
@@ -30,14 +31,19 @@ public final class AuctionManager {
 
     private static final AuctionManager INSTANCE = new AuctionManager();
 
-    private final Map<String, Auction> auctions = new LinkedHashMap<>();
-    private final Map<String, ReentrantLock> locks = new HashMap<>();
+    private final Map<String, Auction> auctions =
+            new LinkedHashMap<>();
+
+    private final Map<String, ReentrantLock> locks =
+            new HashMap<>();
 
     private final List<AuctionObserver> observers =
             new CopyOnWriteArrayList<>();
 
+    private final ItemFactory itemFactory =
+            new DefaultItemFactory();
+
     private AuctionStore store;
-    private final ItemFactory itemFactory = new DefaultItemFactory();
 
     private AuctionManager() {
     }
@@ -46,7 +52,14 @@ public final class AuctionManager {
         return INSTANCE;
     }
 
-    // Configure persistence and load saved auctions
+    private static long sellerIdOf(String sellerUsername) {
+        return Math.max(
+                1L,
+                (long) sellerUsername.hashCode()
+                        & 0x7fffffffL
+        );
+    }
+
     public synchronized void configureStore(AuctionStore store) {
         this.store = store;
 
@@ -55,16 +68,20 @@ public final class AuctionManager {
 
         for (Auction auction : store.load()) {
             auctions.put(auction.getId(), auction);
-            locks.put(auction.getId(), new ReentrantLock());
+            locks.put(
+                    auction.getId(),
+                    new ReentrantLock()
+            );
         }
 
         refreshStatuses();
     }
 
-    // Add a new auction
     public synchronized void addAuction(Auction auction) {
         if (auction == null) {
-            throw new IllegalArgumentException("Phiên đấu giá không hợp lệ");
+            throw new IllegalArgumentException(
+                    "Phiên đấu giá không hợp lệ"
+            );
         }
 
         if (auctions.containsKey(auction.getId())) {
@@ -74,7 +91,11 @@ public final class AuctionManager {
         }
 
         auctions.put(auction.getId(), auction);
-        locks.put(auction.getId(), new ReentrantLock());
+
+        locks.put(
+                auction.getId(),
+                new ReentrantLock()
+        );
 
         save();
     }
@@ -84,31 +105,78 @@ public final class AuctionManager {
             CreateItemRequest request,
             BigDecimal startingPrice,
             BigDecimal increment,
+            Instant startAt,
             Instant endAt
     ) {
+
         if (sellerUsername == null || sellerUsername.isBlank()) {
-            throw new IllegalArgumentException("Thiếu thông tin người bán");
-        }
-        if (request == null) {
-            throw new IllegalArgumentException("Thiếu thông tin sản phẩm");
-        }
-        if (startingPrice == null || startingPrice.signum() < 0) {
-            throw new IllegalArgumentException("Giá khởi điểm không hợp lệ");
-        }
-        if (increment == null || increment.signum() <= 0) {
-            throw new IllegalArgumentException("Bước giá phải lớn hơn 0");
-        }
-        if (endAt == null || !endAt.isAfter(Instant.now())) {
-            throw new IllegalArgumentException("Thời gian kết thúc phải ở tương lai");
+            throw new IllegalArgumentException(
+                    "Thiếu thông tin người bán"
+            );
         }
 
-        Item item = itemFactory.createItem(sellerIdOf(sellerUsername), request);
+        if (request == null) {
+            throw new IllegalArgumentException(
+                    "Thiếu thông tin sản phẩm"
+            );
+        }
+
+        if (startingPrice == null || startingPrice.signum() < 0) {
+            throw new IllegalArgumentException(
+                    "Giá khởi điểm không hợp lệ"
+            );
+        }
+
+        if (increment == null || increment.signum() <= 0) {
+            throw new IllegalArgumentException(
+                    "Bước giá phải lớn hơn 0"
+            );
+        }
+
         Instant now = Instant.now();
+
+        /*
+         * Tương thích với UI hiện tại:
+         * nếu Client chưa gửi startAt thì bắt đầu ngay.
+         */
+        if (startAt == null) {
+            startAt = now;
+        }
+
+        if (endAt == null) {
+            throw new IllegalArgumentException(
+                    "Thiếu thời gian kết thúc"
+            );
+        }
+
+        if (!startAt.isBefore(endAt)) {
+            throw new IllegalArgumentException(
+                    "Thời gian bắt đầu phải trước thời gian kết thúc"
+            );
+        }
+
+        if (!endAt.isAfter(now)) {
+            throw new IllegalArgumentException(
+                    "Thời gian kết thúc phải ở tương lai"
+            );
+        }
+
+        Item item = itemFactory.createItem(
+                sellerIdOf(sellerUsername),
+                request
+        );
+
         Auction auction = new Auction(
-                UUID.randomUUID().toString(), item, startingPrice, increment, now, endAt
+                UUID.randomUUID().toString(),
+                item,
+                startingPrice,
+                increment,
+                startAt,
+                endAt
         );
 
         addAuction(auction);
+
         return auction;
     }
 
@@ -142,36 +210,59 @@ public final class AuctionManager {
     }
 
     // Get all auctions
+    public synchronized Auction createAuction(
+            String sellerUsername,
+            CreateItemRequest request,
+            BigDecimal startingPrice,
+            BigDecimal increment,
+            Instant endAt
+    ) {
+
+        return createAuction(
+                sellerUsername,
+                request,
+                startingPrice,
+                increment,
+                Instant.now(),
+                endAt
+        );
+    }
+
     public synchronized List<Auction> listAuctions() {
         refreshStatuses();
+
         return List.copyOf(auctions.values());
     }
 
-    // Get all auctions created by one seller
-    public synchronized List<Auction> listAuctionsBySeller(String sellerUsername) {
-        if (sellerUsername == null || sellerUsername.isBlank()) {
+    public synchronized List<Auction> listAuctionsBySeller(
+            String sellerUsername
+    ) {
+        if (sellerUsername == null
+                || sellerUsername.isBlank()) {
+
             return List.of();
         }
+
         refreshStatuses();
+
         long sellerId = sellerIdOf(sellerUsername);
-        return auctions.values().stream()
-                .filter(auction -> auction.getItem() != null
-                        && auction.getItem().getSellerId() == sellerId)
+
+        return auctions.values()
+                .stream()
+                .filter(auction ->
+                        auction.getItem() != null
+                                && auction.getItem()
+                                .getSellerId() == sellerId
+                )
                 .toList();
     }
 
-    // Map a seller username to the id stored in Item.sellerId
-    private static long sellerIdOf(String sellerUsername) {
-        return Math.max(1L, (long) sellerUsername.hashCode() & 0x7fffffffL);
-    }
-
-    // Get one auction by ID
     public synchronized Auction getAuction(String auctionId) {
         refreshStatuses();
+
         return auctions.get(auctionId);
     }
 
-    // Get bid history of an auction
     public List<Bid> listBids(String auctionId) {
         Auction auction = getAuction(auctionId);
 
@@ -182,19 +273,16 @@ public final class AuctionManager {
         return auction.getBids();
     }
 
-    // Register an observer
     public void addObserver(AuctionObserver observer) {
         if (observer != null) {
             observers.add(observer);
         }
     }
 
-    // Remove an observer
     public void removeObserver(AuctionObserver observer) {
         observers.remove(observer);
     }
 
-    // Place a bid
     public Bid placeBid(
             String auctionId,
             String bidderId,
@@ -222,16 +310,19 @@ public final class AuctionManager {
 
         try {
             synchronized (auction) {
-
                 refreshStatus(auction);
 
-                if (auction.getStatus() != AuctionStatus.RUNNING) {
+                if (auction.getStatus()
+                        != AuctionStatus.RUNNING) {
+
                     throw new AuctionClosedException(
                             "Phiên đấu giá chưa mở hoặc đã kết thúc"
                     );
                 }
 
-                if (bidderId == null || bidderId.isBlank()) {
+                if (bidderId == null
+                        || bidderId.isBlank()) {
+
                     throw new InvalidBidException(
                             "Thiếu thông tin người đặt giá"
                     );
@@ -244,13 +335,13 @@ public final class AuctionManager {
                 }
 
                 BigDecimal minimumPrice =
-                        auction.getHighestPrice().add(
-                                auction.getIncrement()
-                        );
+                        auction.getHighestPrice()
+                                .add(auction.getIncrement());
 
                 if (amount.compareTo(minimumPrice) < 0) {
                     throw new InvalidBidException(
-                            "Giá đặt tối thiểu là " + minimumPrice
+                            "Giá đặt tối thiểu là "
+                                    + minimumPrice
                     );
                 }
 
@@ -267,7 +358,6 @@ public final class AuctionManager {
                 try {
                     save();
                 } catch (RuntimeException exception) {
-                    // Avoid reporting a successful bid if persistence fails
                     throw new IllegalStateException(
                             "Không thể lưu lượt đặt giá",
                             exception
@@ -281,43 +371,124 @@ public final class AuctionManager {
                         "Có lượt đặt giá mới"
                 );
             }
-
         } finally {
             lock.unlock();
         }
 
-        // Notify observers after the bid has been saved
-        for (AuctionObserver observer : observers) {
-            observer.onAuctionEvent(event);
-        }
+        notifyObservers(event);
 
         return bid;
     }
 
-    // Refresh statuses of all auctions
-    public synchronized void refreshStatuses() {
+    public void refreshStatuses() {
+        List<AuctionEvent> events = new ArrayList<>();
         boolean changed = false;
 
-        for (Auction auction : auctions.values()) {
-            if (refreshStatus(auction)) {
-                changed = true;
+        synchronized (this) {
+            for (Auction auction : auctions.values()) {
+                ReentrantLock lock = locks.get(auction.getId());
+
+                if (lock == null) {
+                    continue;
+                }
+
+                lock.lock();
+
+                try {
+                    synchronized (auction) {
+                        AuctionStatus oldStatus =
+                                auction.getStatus();
+
+                        if (refreshStatus(auction)) {
+                            changed = true;
+
+                            events.add(
+                                    createStatusEvent(
+                                            auction,
+                                            oldStatus
+                                    )
+                            );
+                        }
+                    }
+                } finally {
+                    lock.unlock();
+                }
+            }
+
+            if (changed) {
+                save();
             }
         }
 
-        if (changed) {
-            save();
+        for (AuctionEvent event : events) {
+            notifyObservers(event);
         }
     }
 
-    // Refresh the status of one auction
-    private boolean refreshStatus(Auction auction) {
-        return auction.refreshStatus(Instant.now());
+    private AuctionEvent createStatusEvent(
+            Auction auction,
+            AuctionStatus oldStatus
+    ) {
+        AuctionStatus newStatus = auction.getStatus();
+
+        String message;
+
+        if (oldStatus == AuctionStatus.OPEN
+                && newStatus == AuctionStatus.RUNNING) {
+
+            message = "Phiên đấu giá đã bắt đầu";
+
+        } else if (newStatus == AuctionStatus.FINISHED) {
+
+            message = "Phiên đấu giá đã kết thúc";
+
+        } else {
+
+            message = "Trạng thái phiên đấu giá đã thay đổi";
+        }
+
+        return new AuctionEvent(
+                auction.getId(),
+                auction.getHighestPrice(),
+                null,
+                message
+        );
     }
 
-    // Save auctions to persistent storage
+    private void notifyObservers(AuctionEvent event) {
+        for (AuctionObserver observer : observers) {
+            observer.onAuctionEvent(event);
+        }
+    }
+
+    private boolean refreshStatus(Auction auction) {
+        Instant now = Instant.now();
+
+        AuctionStatus oldStatus = auction.getStatus();
+
+        if (oldStatus == AuctionStatus.OPEN
+                && !now.isBefore(auction.getStartAt())) {
+
+            auction.setStatus(AuctionStatus.RUNNING);
+        }
+
+        if ((auction.getStatus()
+                == AuctionStatus.RUNNING
+                || auction.getStatus()
+                == AuctionStatus.OPEN)
+                && !now.isBefore(auction.getEndAt())) {
+
+            auction.setStatus(AuctionStatus.FINISHED);
+        }
+
+        return oldStatus != auction.getStatus();
+    }
+
     private synchronized void save() {
         if (store != null) {
-            store.save(new ArrayList<>(auctions.values()));
+            store.save(
+                    new ArrayList<>(auctions.values())
+            );
         }
     }
 }

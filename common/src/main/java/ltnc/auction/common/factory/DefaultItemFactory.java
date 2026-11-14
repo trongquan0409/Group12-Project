@@ -1,6 +1,7 @@
 package ltnc.auction.common.factory;
 
 import java.util.Objects;
+
 import ltnc.auction.common.model.Art;
 import ltnc.auction.common.model.Electronics;
 import ltnc.auction.common.model.Item;
