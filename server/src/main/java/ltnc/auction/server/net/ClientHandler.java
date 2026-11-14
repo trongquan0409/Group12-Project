@@ -135,48 +135,16 @@ public final class ClientHandler implements Runnable {
         }
 
         try {
-
-            return switch (
-                    request.getType()
-                    ) {
-
-                case PING ->
-                        new Response(
-                                true,
-                                "PONG",
-                                null
-                        );
-
-                case LOGIN ->
-                        handleLogin(request);
-
-                case REGISTER ->
-                        handleRegister(request);
-
-                case LIST_AUCTIONS ->
-                        new Response(
-                                true,
-                                "OK",
-                                manager.listAuctions()
-                        );
-
-                case LIST_SELLER_AUCTIONS ->
-                        new Response(
-                                true,
-                                "OK",
-                                manager.listAuctionsBySeller(
-                                        request.getUsername()
-                                )
-                        );
-
-                case LIST_BIDS ->
-                        handleListBids(request);
-
-                case PLACE_BID ->
-                        handlePlaceBid(request);
-
-                case CREATE_AUCTION ->
-                        handleCreateAuction(request);
+            return switch (request.getType()) {
+                case PING -> new Response(true, "PONG", null);
+                case LOGIN -> handleLogin(request);
+                case REGISTER -> handleRegister(request);
+                case LIST_AUCTIONS -> new Response(true, "OK", manager.listAuctions());
+                case LIST_SELLER_AUCTIONS -> handleListSellerAuctions(request);
+                case LIST_BIDS -> handleListBids(request);
+                case PLACE_BID -> handlePlaceBid(request);
+                case CREATE_AUCTION -> handleCreateAuction(request);
+                case CANCEL_AUCTION -> handleCancelAuction(request);
             };
 
         } catch (
@@ -294,6 +262,24 @@ public final class ClientHandler implements Runnable {
         );
     }
 
+    private Response handleCancelAuction(Request request) {
+        if (request.getUsername() == null || request.getUsername().isBlank()) {
+            return new Response(false, "Missing seller username.", null);
+        }
+        try {
+            manager.cancelAuction(request.getAuctionId(), request.getUsername());
+        } catch (IllegalStateException exception) {
+            return new Response(false,
+                    "The auction cannot be canceled: It has finished or already had bids.",
+                    null);
+        }
+        return new Response(true,
+                "Successful. Canceled the auction " + request.getAuctionId(),
+                null);
+    }
+
+    private Response handleLogin(Request request) {
+        String role = authService.authenticate(request.getUsername(), request.getPassword());
     private Response handleLogin(
             Request request
     ) {

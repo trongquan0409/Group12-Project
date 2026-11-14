@@ -20,6 +20,9 @@ import ltnc.auction.common.model.Auction;
 import ltnc.auction.common.model.AuctionStatus;
 import ltnc.auction.common.model.Bid;
 import ltnc.auction.common.model.Item;
+import ltnc.auction.common.factory.DefaultItemFactory;
+import ltnc.auction.common.factory.ItemFactory;
+import ltnc.auction.common.util.Validators;
 import ltnc.auction.common.protocol.CreateItemRequest;
 import ltnc.auction.server.observer.AuctionObserver;
 import ltnc.auction.server.persistence.AuctionStore;
@@ -177,6 +180,36 @@ public final class AuctionManager {
         return auction;
     }
 
+    public void cancelAuction(String auctionId, String sellerUsername) {
+        Validators.requireNotBlank(auctionId, "auctionId");
+        Validators.requireNotBlank(sellerUsername, "sellerUsername");
+        long sellerId = sellerIdOf(sellerUsername);
+
+        Auction auction;
+        ReentrantLock lock;
+        synchronized (this) {
+            auction = auctions.get(auctionId);
+            lock = locks.get(auctionId);
+        }
+
+        if (auction == null || lock == null) {
+            throw new IllegalArgumentException("Neither auction nor lock can be null");
+        }
+
+        if (auction.getItem().getSellerId() != sellerId) {
+            throw new IllegalArgumentException("Only the seller can cancel their own item");
+        }
+
+        lock.lock();
+        try {
+            auction.cancel();
+            save();
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    // Get all auctions
     public synchronized Auction createAuction(
             String sellerUsername,
             CreateItemRequest request,
