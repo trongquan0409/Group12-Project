@@ -84,7 +84,8 @@ public final class Auction implements Serializable {
         boolean canCancel = (status == AuctionStatus.OPEN) ||
                 (status == AuctionStatus.RUNNING && bids.isEmpty());
         if (!canCancel) {
-            throw new IllegalStateException("Only OPEN status or RUNNING status with no bids can cancel, now is " + status);
+            throw new IllegalStateException(
+                    "Only OPEN status or RUNNING status with no bids can cancel, now is " + status);
         }
         status = AuctionStatus.CANCELED;
     }
@@ -114,6 +115,11 @@ public final class Auction implements Serializable {
 
     public synchronized String getHighestBidderId() {
         return highestBidderId;
+    }
+
+    public synchronized String getWinnerId() {
+        boolean over = (status == AuctionStatus.FINISHED) || (status == AuctionStatus.PAID);
+        return (over) ? highestBidderId : null;
     }
 
     public synchronized List<Bid> getBids() {
