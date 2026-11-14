@@ -8,6 +8,11 @@ import ltnc.auction.common.protocol.RequestType;
  */
 public final class SecurityConfig {
 
+    /** Only administrators may manage other users' account status. */
+    public boolean canManageAccounts(UserRole role) {
+        return role == UserRole.ADMIN;
+    }
+
     public boolean isPublicRequest(RequestType requestType) {
         return requestType == RequestType.LOGIN
                 || requestType == RequestType.REGISTER
