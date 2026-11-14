@@ -17,7 +17,6 @@ import org.junit.jupiter.api.Test;
 
 import ltnc.auction.common.model.Art;
 import ltnc.auction.common.model.Auction;
-import ltnc.auction.common.model.AuctionStatus;
 import ltnc.auction.common.model.Electronics;
 import ltnc.auction.common.model.Vehicle;
 
@@ -70,7 +69,7 @@ class AuctionListControllerTest {
         Instant end = Instant.parse("2026-11-20T10:00:00Z");
         Auction auction = new Auction(
                 "AUC-101", item, new BigDecimal("25000000"), new BigDecimal("500000"), start, end);
-        auction.setStatus(AuctionStatus.RUNNING);
+        auction.start();
 
         assertTrue(AuctionListController.matchesBidderFilter(auction, "", "Tất cả"));
         assertTrue(AuctionListController.matchesBidderFilter(auction, "macbook", "Tất cả"));
@@ -86,7 +85,8 @@ class AuctionListControllerTest {
         Instant end = Instant.parse("2026-11-20T10:00:00Z");
         Auction auction = new Auction(
                 "AUC-202", item, new BigDecimal("12000000"), new BigDecimal("200000"), start, end);
-        auction.setStatus(AuctionStatus.FINISHED);
+        auction.start();
+        auction.finish();
 
         assertTrue(AuctionListController.matchesBidderFilter(auction, null, "Đã kết thúc"));
         assertTrue(AuctionListController.matchesBidderFilter(auction, "  ", null));

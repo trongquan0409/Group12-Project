@@ -5,12 +5,10 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.text.Collator;
 import java.text.NumberFormat;
-import java.time.ZoneId;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.time.Instant;
-import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
@@ -469,12 +467,20 @@ public class AuctionListController {
                     )
             );
         });
-    }
-
-    private void configureAuctionSelection() {
 
         configureBidderView();
         configureSellerTables();
+
+        setVisible(registerView, false);
+        setVisible(adminView, false);
+        setVisible(sellerView, false);
+        setVisible(bidderView, false);
+        setVisible(authView, true);
+    }
+
+    // =========================================================
+    // KẾT NỐI REALTIME
+    // =========================================================
 
     private boolean connectToServer() {
 
@@ -545,7 +551,7 @@ public class AuctionListController {
             if (eventAuctionId != null
                     && eventAuctionId.equals(selectedAuctionId)) {
 
-                loadBidHistory(eventAuctionId);
+                loadBidHistory(eventAuctionId, false);
             }
 
             if (statusLabel != null
@@ -855,6 +861,9 @@ public class AuctionListController {
         currentRole = null;
         selectedAuctionId = null;
 
+        auctionLoading.set(false);
+        historyLoading.set(false);
+
         updatingAuctionList = true;
         syncingPriceControls = true;
         try {
@@ -922,6 +931,16 @@ public class AuctionListController {
             return;
         }
 
+        if (socketClient == null
+                && !connectToServer()) {
+
+            sellerMessage.setText(
+                    "Không thể kết nối server."
+            );
+
+            return;
+        }
+
         String name = sellerItemName.getText().trim();
         String description = sellerItemDescription.getText().trim();
         LocalDate endDate;
@@ -933,33 +952,6 @@ public class AuctionListController {
         }
         if (name.isBlank() || endDate == null) {
             sellerMessage.setText("Vui lòng nhập tên sản phẩm và ngày kết thúc.");
-        if (socketClient == null
-                && !connectToServer()) {
-
-            sellerMessage.setText(
-                    "Không thể kết nối server."
-            );
-
-            return;
-        }
-
-        String name =
-                sellerItemName.getText().trim();
-
-        String description =
-                sellerItemDescription.getText().trim();
-
-        LocalDate endDate =
-                sellerEndDate.getValue();
-
-        if (name.isBlank()
-                || endDate == null) {
-
-            sellerMessage.setText(
-                    "Vui lòng nhập tên sản phẩm "
-                            + "và ngày kết thúc."
-            );
-
             return;
         }
 
@@ -1047,7 +1039,24 @@ public class AuctionListController {
             sellerMessage.setText("Thời điểm kết thúc phải ở tương lai.");
             return;
         }
+        String username = currentUsername;
         sellerMessage.setText("Đang tạo phiên đấu giá...");
+
+        Thread.ofVirtual().start(() -> {
+
+            try {
+
+                Response response =
+                        socketClient.send(
+                                new Request(
+                                        RequestType.CREATE_AUCTION,
+                                        username,
+                                        itemRequest,
+                                        startingPrice,
+                                        increment,
+                                        endAt
+                                )
+                        );
 
                 Platform.runLater(() -> {
 
@@ -2232,7 +2241,20 @@ public class AuctionListController {
                         statusLabel.setText(
                                 "Không tìm thấy phiên đấu giá phù hợp bộ lọc."
                         );
-                    updateAuctionList(response);
+
+                    } else {
+
+                        statusLabel.setText(
+                                "Đã tải " + allBidderAuctions.size()
+                                        + " phiên đấu giá từ server."
+                        );
+
+                        // Nếu phiên đang chọn vẫn tồn tại,
+                        // tiếp tục tải lịch sử của phiên đó
+                        if (selectedAuctionId != null) {
+                            loadBidHistory(selectedAuctionId, false);
+                        }
+                    }
 
                 });
 
@@ -2252,104 +2274,13 @@ public class AuctionListController {
         });
     }
 
-    private void updateAuctionList(
-            Response response
-    ) {
-
-        String previousSelectedId =
-                selectedAuctionId;
-
-        updatingAuctionList = true;
-
-        try {
-
-            auctionList.getItems().clear();
-
-            List<Auction> auctions =
-                    response.auctions();
-
-            if (auctions != null) {
-
-                for (Auction auction : auctions) {
-
-                    auctionList.getItems().add(
-                            auction.getId()
-                                    + " | "
-                                    + auction.getItem()
-                                    .getName()
-                                    + " | "
-                                    + auction.getStatus()
-                                    + " | "
-                                    + auction.getHighestPrice()
-                    );
-                }
-            }
-
-            if (previousSelectedId != null) {
-
-                        statusLabel.setText(
-                                "Đã tải " + allBidderAuctions.size()
-                                        + " phiên đấu giá từ server."
-                        );
-
-                        // Nếu phiên đang chọn vẫn tồn tại,
-                        // tiếp tục tải lịch sử của phiên đó
-                        if (selectedAuctionId != null) {
-                            loadBidHistory(selectedAuctionId, false);
-                        }
-                    }
-                });
-
-                    String id =
-                            item.split(
-                                    " \\| ",
-                                    2
-                            )[0];
-
-                    if (id.equals(
-                            previousSelectedId
-                    )) {
-
-                        auctionList.getSelectionModel()
-                                .select(i);
-
-                        break;
-                    }
-                }
-            }
-
-        } finally {
-
-            updatingAuctionList = false;
-        }
-
-        if (auctionList.getItems().isEmpty()) {
-
-            selectedAuctionId = null;
-
-            auctionIdField.clear();
-
-            bidHistoryTable.getItems().clear();
-
-            statusLabel.setText(
-                    "Hiện chưa có phiên đấu giá."
-            );
-
-        } else {
-
-            statusLabel.setText(
-                    "Đã tải danh sách phiên "
-                            + "đấu giá từ server."
-            );
-        }
-    }
-
     // =========================================================
     // TẢI LỊCH SỬ ĐẶT GIÁ
     // =========================================================
 
     private void loadBidHistory(String auctionId, boolean updateStatus) {
 
+        if (auctionId == null || auctionId.isBlank() || socketClient == null) {
             return;
         }
 
