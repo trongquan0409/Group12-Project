@@ -2,9 +2,12 @@ package ltnc.auction.common.model;
 
 import java.time.Instant;
 import java.time.Year;
+
 import ltnc.auction.common.util.Validators;
 
-/** A work of art put up for auction, such as a painting or a sculpture. */
+/**
+ * A work of art put up for auction, such as a painting or a sculpture.
+ */
 public class Art extends Item {
 
     // Keep in sync with the column that stores the artist.
@@ -22,14 +25,14 @@ public class Art extends Item {
      * <p>Pass {@code null} for {@code id}, {@code createdAt} and {@code updatedAt} to create a new
      * item. Pass the stored values to restore an item loaded from the database.
      *
-     * @param id the database id, or {@code null} for a new item
-     * @param createdAt the creation time, or {@code null} for a new item
-     * @param updatedAt the last update time, or {@code null} for a new item
-     * @param name the item name, must not be blank
+     * @param id          the database id, or {@code null} for a new item
+     * @param createdAt   the creation time, or {@code null} for a new item
+     * @param updatedAt   the last update time, or {@code null} for a new item
+     * @param name        the item name, must not be blank
      * @param description the item description, may be {@code null}
-     * @param sellerId the id of the seller who owns this item, must be positive
-     * @param artist the artist, must not be blank
-     * @param year the year the work was created, from {@value #MIN_YEAR} to the current year
+     * @param sellerId    the id of the seller who owns this item, must be positive
+     * @param artist      the artist, must not be blank
+     * @param year        the year the work was created, from {@value #MIN_YEAR} to the current year
      * @throws IllegalArgumentException if any value is invalid
      */
     public Art(
@@ -61,7 +64,7 @@ public class Art extends Item {
      * unchanged.
      *
      * @param artist the new artist, must not be blank
-     * @param year the new creation year, from {@value #MIN_YEAR} to the current year
+     * @param year   the new creation year, from {@value #MIN_YEAR} to the current year
      * @throws IllegalArgumentException if a value is invalid
      */
     public void updateDetails(String artist, int year) {

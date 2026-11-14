@@ -1,9 +1,12 @@
 package ltnc.auction.common.model;
 
 import java.time.Instant;
+
 import ltnc.auction.common.util.Validators;
 
-/** An electronic device put up for auction, such as a phone or a laptop. */
+/**
+ * An electronic device put up for auction, such as a phone or a laptop.
+ */
 public class Electronics extends Item {
 
     // Keep in sync with the column that stores the brand.
@@ -18,13 +21,13 @@ public class Electronics extends Item {
      * <p>Pass {@code null} for {@code id}, {@code createdAt} and {@code updatedAt} to create a new
      * item. Pass the stored values to restore an item loaded from the database.
      *
-     * @param id the database id, or {@code null} for a new item
-     * @param createdAt the creation time, or {@code null} for a new item
-     * @param updatedAt the last update time, or {@code null} for a new item
-     * @param name the item name, must not be blank
-     * @param description the item description, may be {@code null}
-     * @param sellerId the id of the seller who owns this item, must be positive
-     * @param brand the brand, must not be blank
+     * @param id             the database id, or {@code null} for a new item
+     * @param createdAt      the creation time, or {@code null} for a new item
+     * @param updatedAt      the last update time, or {@code null} for a new item
+     * @param name           the item name, must not be blank
+     * @param description    the item description, may be {@code null}
+     * @param sellerId       the id of the seller who owns this item, must be positive
+     * @param brand          the brand, must not be blank
      * @param warrantyMonths the warranty period in months, must not be negative
      * @throws IllegalArgumentException if any value is invalid
      */
@@ -56,7 +59,7 @@ public class Electronics extends Item {
      * <p>Both values are validated before either is assigned, so a failed call leaves this item
      * unchanged.
      *
-     * @param brand the new brand, must not be blank
+     * @param brand          the new brand, must not be blank
      * @param warrantyMonths the new warranty period in months, must not be negative
      * @throws IllegalArgumentException if a value is invalid
      */
